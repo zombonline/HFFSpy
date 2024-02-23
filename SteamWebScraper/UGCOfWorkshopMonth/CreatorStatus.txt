@@ -1,0 +1,14 @@
+Enter the profile links to users who you would like to hilight.
+Add a number after their profile link to specify their status
+1 - Signed Creator
+2 - Creator we have contacted
+3 - Creator we are planning to approach
+Here is an example of how you can format this.
+
+Bradley Jones - UK - Pretty cool guy, makes fun games.
+76561198142966023 - 3
+
+
+
+
+
