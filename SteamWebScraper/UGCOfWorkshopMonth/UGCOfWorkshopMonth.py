@@ -114,6 +114,7 @@ def ExtractWorkShopData():
             }
         response = requests.post(url, data=params)
         item_data = response.json()
+        print(steam.users.get_user_details(item_data['response']['publishedfiledetails'][0]['creator']))
         item_title = item_data['response']['publishedfiledetails'][0]['title']
         item_creator_name = steam.users.get_user_details(item_data['response']['publishedfiledetails'][0]['creator'])['player']['personaname']
         item_TUS = item_data['response']['publishedfiledetails'][0]['lifetime_subscriptions']
@@ -207,6 +208,7 @@ wait = WebDriverWait(driver, 3)
 
 start_date, end_date = user_define_date_range()
 link = f"https://steamcommunity.com/workshop/browse/?appid=477160&browsesort=trend&section=readytouseitems&requiredtags%5B0%5D=Levels&created_date_range_filter_start={start_date}&created_date_range_filter_end={end_date}&updated_date_range_filter_start=NaN&updated_date_range_filter_end=NaN&actualsort=trend&p=1&days=-1"
+
 
 driver.get(link)
 workshop_data = ExtractWorkShopData()
