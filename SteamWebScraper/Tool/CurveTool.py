@@ -19,7 +19,6 @@ import xlsxwriter
 import math
 from decouple import config
 from enum import Enum
-import chinese_count
 app = tk.Tk()
 app.title("Curve Tool")
 app.geometry("800x600")
@@ -93,12 +92,16 @@ def set_up_total_chinese_count_page():
     date_range_end_label.pack()
     date_range_end = DateEntry(total_chinese_count_canvas, textvariable=date_range_end_input, date_pattern="yyyy-mm-dd")
     date_range_end.pack()
-     # Create the list of tags
-    checkbox_frame = ctk.CTkFrame(total_chinese_count_canvas)
-    checkbox_frame.pack()
     # Create the 'submit date range' button
     submit_date_range_button = ctk.CTkButton(total_chinese_count_canvas, text="Submit Date Range", command=lambda: chinese_count_date_button_click(checkbox_frame))
     submit_date_range_button.pack()
+    # Create the list of tags
+    checkbox_frame = ctk.CTkFrame(total_chinese_count_canvas)
+    checkbox_frame.pack()
+    #Create the 'submit tags' button
+    submit_tags_button = ctk.CTkButton(total_chinese_count_canvas, text="Submit Tags", command=lambda: chinese_count_submit_tags_button_click(checkbox_frame))
+    submit_tags_button.pack()
+
    
 
 def load_page(page):
@@ -117,6 +120,7 @@ def load_page(page):
 add_appID_input = tk.StringVar()
 date_range_start_input = tk.StringVar()
 date_range_end_input = tk.StringVar()
+tags_checklist_vars = []
 #endregion
 #region tkinter functions
 def populate_list_with_appIDs(list):
@@ -157,12 +161,25 @@ def get_selected_list_element_index(list):
     else:
         return None
 def create_checklist(options, canvas):
+    vars = []
     for i in range(len(options)):
-        options[i] = tk.Checkbutton(canvas, text=options[i])
+        var = tk.IntVar()
+        vars.append(var)
+        options[i] = tk.Checkbutton(canvas, text=options[i], variable=var, onvalue=1, offvalue=0)
         options[i].grid(column=i//7, row=i%7)
+    return vars
 def chinese_count_date_button_click(canvas):
     submit_date_range_to_url(date_range_start_input.get(), date_range_end_input.get())
-    create_checklist(load_tags_from_webpage(), canvas)
+    tags_checklist_vars = create_checklist(load_tags_from_webpage(), canvas)
+def chinese_count_submit_tags_button_click(canvas):
+    tags = []
+    for i in range(len(tags_checklist_vars)):
+        if tags_checklist_vars[i].get() == 1:
+            tags.append(tags_checklist_vars[i].cget("text"))
+    print(tags)
+    print("done")
+    #endregion
+    #region selenium functions
 #endregion
 def submit_date_range_to_url(start, end):
     start_timestamp = int(datetime.strptime(start, "%Y-%m-%d").timestamp())
@@ -194,11 +211,11 @@ def load_tags_from_webpage():
     except Exception as e:
         print(f"Error: {e}")
     return tags
-load_page("Home")
 
+
+load_page("Home")
 driver = load_chrome_driver()
 wait = WebDriverWait(driver, 10)
-chinese_count.driver = driver
 app.mainloop()
 
 
