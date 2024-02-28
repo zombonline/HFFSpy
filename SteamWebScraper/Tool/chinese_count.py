@@ -16,6 +16,10 @@ import xlsxwriter
 import math
 from decouple import config
 from enum import Enum
+
+KEY = config('STEAM_API_KEY')
+url = 'https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/'
+
 class WorkshopItem:
     def __init__(self, title, creator_ID, creator_name, country, detected_language, date_posted, tags, item_type):
         self.title = title
@@ -35,7 +39,7 @@ def set_workshop_tags(tags):
                 option.click()
                 time.sleep(1)
                 break            
-def get_workshop_link(start_date, end_date):
+def set_date_filter_in_url(start_date, end_date):
     link = f'https://steamcommunity.com/workshop/browse/?appid=477160&searchtext=&childpublishedfileid=0&browsesort=trend&section=readytouseitems&created_date_range_filter_start={start_date}&created_date_range_filter_end={end_date}&updated_date_range_filter_start=NaN&updated_date_range_filter_end=NaN'
     return link
 def get_workshop_css_elements():
@@ -55,7 +59,7 @@ def get_steam_data_from_workshop_css_element(item):
     response = requests.post(url, data=params)
     data = response.json()
     workShopItem = data['response']['publishedfiledetails'][0]
-    user = steam.users.get_user_details(data['response']['publishedfiledetails'][0]['creator'])
+    user = Steam.users.get_user_details(data['response']['publishedfiledetails'][0]['creator'])
     return workShopItem, user
 def create_workshop_item_objects_array(workshop_css_elements):
     workshopItems = []
@@ -138,31 +142,10 @@ def get_item_type_from_tags(tags):
         return "Lobby"
     else:
         return "N/A"
-def write_to_excel(start_date, end_date, week, workshop_data):
-    workbook = xlsxwriter.Workbook(f'chinese proportion {start_date.strftime('%y')} week {week}.xlsx')
-    worksheet = workbook.add_worksheet()
-    worksheet.write('B1', f'Week {week}')
-    worksheet.write('B2', f'{start_date.strftime("%d/%m")} - {end_date.strftime("%d/%m")}')
-    worksheet.write('B3', f'''
-                    First Item: {workshop_data[0].title} by {workshop_data[0].creator_name}
-                    Last Item: {workshop_data[-1].title} by {workshop_data[-1].creator_name}''')
-    worksheet.write('A4', 'Worldwide Items')
-    worksheet.write('B4', str(len(workshop_data)))
-    chineseCount = 0
-    for item in workshop_data:
-        if 'zh' in item.detected_language:
-            chineseCount += 1
-    worksheet.write('A5', 'Chinese Items')
-    worksheet.write('B5', str(chineseCount))
-    percentage = (chineseCount/len(workshop_data)) * 100
-    worksheet.write('A6', 'Chinese Proportion')
-    worksheet.write('B6', f'{round(percentage)}%')
-    workbook.close()
-
 
 start_date = datetime(2021, 1, 1)
 end_date = datetime(2021, 1, 7)
 tags = []
-driver = None
+driver = webdriver.Chrome()
 wait = WebDriverWait(driver, 10)
 
