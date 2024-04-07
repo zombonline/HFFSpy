@@ -61,12 +61,27 @@ def user_define_filter():
     return result
 def get_workshop_link(start_date, end_date, filter):
     if filter == 'Workshop':
-        link = f"https://steamcommunity.com/workshop/browse/?appid=477160&searchtext=&childpublishedfileid=0&browsesort=mostrecent&section=readytouseitems&created_date_range_filter_start={start_date.timestamp()}&created_date_range_filter_end={end_date.timestamp()}&updated_date_range_filter_start=0&updated_date_range_filter_end=0"
+        link = f"https://steamcommunity.com/workshop/browse/?appid=477160&searchtext=&childpublishedfileid=0&browsesort=mostrecent&section=readytouseitems&created_date_range_filter_start={start_date.timestamp()}&created_date_range_filter_end={end_date.timestamp()}&updated_date_range_filter_start=0&updated_date_range_filter_end=0&p=1"
     elif filter == 'Levels':
-        link = f"https://steamcommunity.com/workshop/browse/?appid=477160&searchtext=&childpublishedfileid=0&browsesort=mostrecent&section=readytouseitems&requiredtags%5B%5D=Levels&created_date_range_filter_start={round(start_date.timestamp())}&created_date_range_filter_end={end_date.timestamp()}&updated_date_range_filter_start=NaN&updated_date_range_filter_end=NaN"
+        link = f"https://steamcommunity.com/workshop/browse/?appid=477160&searchtext=&childpublishedfileid=0&browsesort=mostrecent&section=readytouseitems&requiredtags%5B%5D=Levels&created_date_range_filter_start={round(start_date.timestamp())}&created_date_range_filter_end={end_date.timestamp()}&updated_date_range_filter_start=NaN&updated_date_range_filter_end=NaN&p=1"
     elif filter == 'Models':
-        link = f"https://steamcommunity.com/workshop/browse/?appid=477160&searchtext=&childpublishedfileid=0&browsesort=mostrecent&section=readytouseitems&requiredtags%5B%5D=Model&created_date_range_filter_start={round(start_date.timestamp)}&created_date_range_filter_end={end_date.timestamp}&updated_date_range_filter_start=NaN&updated_date_range_filter_end=NaN"
+        link = f"https://steamcommunity.com/workshop/browse/?appid=477160&searchtext=&childpublishedfileid=0&browsesort=mostrecent&section=readytouseitems&requiredtags%5B%5D=Model&created_date_range_filter_start={round(start_date.timestamp)}&created_date_range_filter_end={end_date.timestamp}&updated_date_range_filter_start=NaN&updated_date_range_filter_end=NaN&p=1"
     return link
+def get_expected_number_of_items():
+    try:
+        wait.until(lambda driver: len(driver.find_elements(By.CSS_SELECTOR, 'div.workshopBrowsePagingInfo')) > 0)
+    except TimeoutException:
+        print("Could not find expected number of items.")
+        return 0
+    number_of_items_string = driver.find_element(By.CSS_SELECTOR, 'div.workshopBrowsePagingInfo').text
+    expected_number_of_items = int(number_of_items_string.split('of ')[1].split(' ')[0].replace(',', ''))
+    return expected_number_of_items
+def next_page():
+    currentPageUrl = driver.current_url
+    currentPage = int(currentPageUrl.split('p=')[1])
+    nextPage = currentPage + 1
+    nextPageUrl = currentPageUrl.split('p=')[0] + 'p=' + str(nextPage)
+    driver.get(nextPageUrl)
 def get_workshop_css_elements():
     try:
         wait.until(lambda driver: len(driver.find_elements(By.CSS_SELECTOR, 'div.workshopItem')) > 0)
@@ -168,24 +183,63 @@ def get_item_type_from_tags(tags):
     else:
         return "N/A"
 def write_to_excel(start_date, end_date, week, workshop_data):
-    workbook = xlsxwriter.Workbook(f'chinese proportion {start_date.strftime('%y')} week {week}.xlsx')
+    workbook = xlsxwriter.Workbook(f'UGCChineseSpeakingCount_Week{week}_{start_date.strftime("%m-%d-%Y")}_to_{end_date.strftime("%m-%d-%Y")}.xlsx')
     worksheet = workbook.add_worksheet()
-    worksheet.write('B1', f'Week {week}')
-    worksheet.write('B2', f'{start_date.strftime("%d/%m")} - {end_date.strftime("%d/%m")}')
-    worksheet.write('B3', f'''
-                    First Item: {workshop_data[0].title} by {workshop_data[0].creator_name}
-                    Last Item: {workshop_data[-1].title} by {workshop_data[-1].creator_name}''')
-    worksheet.write('A4', 'Worldwide Items')
-    worksheet.write('B4', str(len(workshop_data)))
-    chineseCount = 0
-    for item in workshop_data:
-        if 'zh' in item.detected_language:
-            chineseCount += 1
-    worksheet.write('A5', 'Chinese Items')
-    worksheet.write('B5', str(chineseCount))
-    percentage = (chineseCount/len(workshop_data)) * 100
-    worksheet.write('A6', 'Chinese Proportion')
-    worksheet.write('B6', f'{round(percentage)}%')
+    worksheet.write('A1', 'Date Posted')
+    worksheet.write('B1', 'Title')
+    worksheet.write('C1', 'Creator Name')
+    worksheet.write('D1', 'Type')
+    worksheet.write('E1', 'Country')
+    worksheet.write('F1', 'Language')
+
+    chineseLevels = 0
+    chineseModels = 0
+    totalLevels = 0
+    totalModels = 0
+    for(i, item) in enumerate(workshop_data):
+        worksheet.write(i+1, 0, item.date_posted.strftime("%d-%m-%Y"))
+        worksheet.write(i+1, 1, item.title)
+        worksheet.write(i+1, 2, item.creator_name)
+        worksheet.write(i+1, 3, item.item_type)
+        worksheet.write(i+1, 4, item.country)
+        worksheet.write(i+1, 5, item.detected_language)
+        if item.detected_language == 'zh-cn':
+            if item.item_type == 'Level':
+                chineseLevels += 1
+            elif item.item_type == 'Model':
+                chineseModels += 1
+        if item.item_type == 'Level':
+            totalLevels += 1
+        elif item.item_type == 'Model':
+            totalModels += 1
+    worksheet.write('H2', 'Models')
+    worksheet.write('H3', 'Total Entries')
+    worksheet.write('H4', 'Chinese Entries')
+    worksheet.write('H5', 'Chinese Proportion')
+
+    worksheet.write('H7', 'Levels')
+    worksheet.write('H8', 'Total Entries')
+    worksheet.write('H9', 'Chinese Entries')
+    worksheet.write('H10', 'Chinese Proportion')
+
+    worksheet.write('H12', 'Total')
+    worksheet.write('H13', 'Total Entries')
+    worksheet.write('H14', 'Chinese Entries')
+    worksheet.write('H15', 'Chinese Proportion')
+
+    worksheet.write('I3', totalModels)
+    worksheet.write('I4', chineseModels)
+    worksheet.write('I5', f"{chineseModels/totalModels:.2%}")
+
+    worksheet.write('I8', totalLevels)
+    worksheet.write('I9', chineseLevels)
+    worksheet.write('I10', f"{chineseLevels/totalLevels:.2%}")
+
+    worksheet.write('I13', totalLevels + totalModels)
+    worksheet.write('I14', chineseLevels + chineseModels)
+    worksheet.write('I15', f"{(chineseLevels + chineseModels)/(totalLevels + totalModels):.2%}")
+
+
     workbook.close()
 
 KEY = config('STEAM_API_KEY')
@@ -215,13 +269,20 @@ filter = user_define_filter()
 link = get_workshop_link(start_date, end_date, filter)
 print(f'\n\nScanning {filter} from {start_date} to {end_date} (Week {week})...')
 driver.get(link)
-workshop_css_elements = get_workshop_css_elements()
-workshop_data = create_workshop_item_objects_array(workshop_css_elements)
+
+expected_number_of_items = get_expected_number_of_items()
+workshop_data = []
+
+while len(workshop_data) < expected_number_of_items:
+    for item in create_workshop_item_objects_array(get_workshop_css_elements()):
+        workshop_data.append(item)
+    print(len(workshop_data), expected_number_of_items)
+    next_page()
 print(f"Scanned {len(workshop_data)} items.")
 write_to_excel(start_date, end_date, week, workshop_data)
 for item in workshop_data:
     print(f"{item.title} by {item.creator_name} ({item.country})")
-
+write_to_excel(start_date, end_date, week, workshop_data)
 input("Press Enter to continue...")
 # workshop_data = ExtractWorkShopData()
 # output_to_excel(workshop_data)

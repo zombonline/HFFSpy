@@ -10,7 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support import expected_conditions as EC
 from steam import Steam
-from datetime import datetime
+from datetime import datetime, date
 from langdetect import detect
 import xlsxwriter
 import math
@@ -27,13 +27,13 @@ class WorkshopItem:
     def __init__(self, title, creator_name, country, language, tus, rating, comment_count, date_posted, creator_status):
         self.title = title
         self.creator_name = creator_name
+        self.date_posted = date_posted
+        self.country = country
+        self.language = language 
         self.tus = tus
         self.rating = rating
         self.comment_count = comment_count
-        self.date_posted = date_posted
-        self.creator_status = creator_status  
-        self.country = country
-        self.language = language   
+        self.creator_status = creator_status    
 def user_define_date_range():
     m = input("Please enter the month of the data you want to scrape (MM): ")
     y = input("Please enter the year of the data you want to scrape (YYYY): ")
@@ -61,50 +61,57 @@ def get_item_comment_count(item):
     driver.close()
     driver.switch_to.window(driver.window_handles[0])
     return comment_count
-def output_to_excel(list):
-    month = datetime.fromtimestamp(start_date).month
-    year = datetime.fromtimestamp(start_date).year
-    workbook = xlsxwriter.Workbook(f'UGCOfWorkshopMonth {year}-{month}.xlsx')
-    worksheet = workbook.add_worksheet(f"{year} {month}")
-    bold = workbook.add_format({'bold': True})
-    hilight_orange = workbook.add_format({'bg_color': 'orange'})
-    hilight_green = workbook.add_format({'bg_color': 'green'})
-    hilight_yellow = workbook.add_format({'bg_color': 'yellow'})
-    worksheet.write('A1', 'Name of the level', bold)
-    worksheet.write('B1', 'Creator', bold)
-    worksheet.write('C1', 'Country', bold)
-    worksheet.write('D1', 'Language', bold)
-    worksheet.write('E1', f'TUS ({ datetime.now().strftime("%d/%m/%Y")})', bold)
-    worksheet.write('F1', 'Rating', bold)
-    worksheet.write('G1', 'Comments', bold)
-    worksheet.write('H1', 'Date Posted', bold)
-    worksheet.write('J3', 'Signed Creator', hilight_orange)
-    worksheet.write('J4', 'Creator we have contacted', hilight_green)
-    worksheet.write('J5', 'Creator we are planning to approach', hilight_yellow)
-    row = 1
-    col = 0
-    for item in list:
-        worksheet.write(row, col, item.title)
-        if item.creator_status == CreatorStatus.signed_creator:
-            worksheet.write(row, col + 1, item.creator_name, hilight_orange)
-        elif item.creator_status == CreatorStatus.contacted_creator:
-            worksheet.write(row, col + 1, item.creator_name, hilight_green)
-        elif item.creator_status == CreatorStatus.pending_contact_creator:
-            worksheet.write(row, col + 1, item.creator_name, hilight_yellow)
-        else:
-            worksheet.write(row, col + 1, item.creator_name)
-        worksheet.write(row, col + 2, item.country)
-        worksheet.write(row, col + 3, item.language)
-        worksheet.write(row, col + 4, item.tus)
-        worksheet.write(row, col + 5, item.rating)
-        worksheet.write(row, col + 6, item.comment_count)
-        worksheet.write(row, col + 7, item.date_posted.strftime("%d/%m/%Y"))
+def output_to_excel(level_list, model_list):
+    workbook = xlsxwriter.Workbook('UGCOfWorkshopMonth.xlsx')
+    worksheet = workbook.add_worksheet()
+    worksheet.write('A1', 'Level')
+    worksheet.write('A2', 'Rank')
+    worksheet.write('B2', 'Title')
+    worksheet.write('C2', 'Creator')
+    worksheet.write('D2', 'Date Posted')
+    worksheet.write('E2', 'Country')
+    worksheet.write('F2', 'Language')
+    worksheet.write('G2', f'TUS ({date.today()})')
+    worksheet.write('H2', 'Rating')
+    worksheet.write('I2', 'Comment Count')
+    worksheet.write('A23', 'Model')
+    worksheet.write('A24', 'Rank')
+    worksheet.write('B24', 'Title')
+    worksheet.write('C24', 'Creator')
+    worksheet.write('D24', 'Date Posted')
+    worksheet.write('E24', 'Country')
+    worksheet.write('F24', 'Language')
+    worksheet.write('G24', f'TUS ({date.today()})')
+    worksheet.write('H24', 'Rating')
+    worksheet.write('I24', 'Comment Count')
 
-        row += 1
+    for i in range(len(level_list)):
+        worksheet.write(i+2, 0, i+1)
+        worksheet.write(i+2, 1, level_list[i].title)
+        worksheet.write(i+2, 2, level_list[i].creator_name)
+        worksheet.write(i+2, 3, level_list[i].date_posted.strftime("%m/%d/%Y, %H:%M:%S"))
+        worksheet.write(i+2, 4, level_list[i].country)
+        worksheet.write(i+2, 5, level_list[i].language)
+        worksheet.write(i+2, 6, level_list[i].tus)
+        worksheet.write(i+2, 7, level_list[i].rating)
+        worksheet.write(i+2, 8, level_list[i].comment_count)
+    for i in range(len(model_list)):
+        worksheet.write(i+24, 0, i+1)
+        worksheet.write(i+24, 1, model_list[i].title)
+        worksheet.write(i+24, 2, model_list[i].creator_name)
+        worksheet.write(i+24, 3, model_list[i].date_posted.strftime("%m/%d/%Y, %H:%M:%S"))
+        worksheet.write(i+24, 4, model_list[i].country)
+        worksheet.write(i+24, 5, model_list[i].language)
+        worksheet.write(i+24, 6, model_list[i].tus)
+        worksheet.write(i+24, 7, model_list[i].rating)
+        worksheet.write(i+24, 8, model_list[i].comment_count)
     workbook.close()
+    
 def ExtractWorkShopData():
     wait.until(EC.presence_of_element_located((By.CLASS_NAME, "workshopItem")))
     workshopItems = driver.find_elements(By.CLASS_NAME, "workshopItem")
+    if(len(workshopItems) > 20):
+        workshopItems = workshopItems[:20]
     workshop_data = []
     for item in workshopItems:
         params = {
@@ -129,7 +136,9 @@ def ExtractWorkShopData():
         workshop_data.append(item)
     return workshop_data
 def GetCreatorStatus(creator_ID):
-    file = open("CreatorStatus.txt", "r")
+    this_dir = os.path.dirname(os.path.abspath(__file__))
+
+    file = open(f"{this_dir}/CreatorStatus.txt", "r")
     for line in file:
         if creator_ID in line:
             try:
@@ -207,11 +216,13 @@ wait = WebDriverWait(driver, 3)
 #endregion
 
 start_date, end_date = user_define_date_range()
-link = f"https://steamcommunity.com/workshop/browse/?appid=477160&browsesort=trend&section=readytouseitems&requiredtags%5B0%5D=Levels&created_date_range_filter_start={start_date}&created_date_range_filter_end={end_date}&updated_date_range_filter_start=NaN&updated_date_range_filter_end=NaN&actualsort=trend&p=1&days=-1"
+level_link = f"https://steamcommunity.com/workshop/browse/?appid=477160&browsesort=trend&section=readytouseitems&requiredtags%5B0%5D=Levels&created_date_range_filter_start={start_date}&created_date_range_filter_end={end_date}&updated_date_range_filter_start=NaN&updated_date_range_filter_end=NaN&actualsort=trend&p=1&days=-1"
+driver.get(level_link)
+level_workshop_data = ExtractWorkShopData()
 
-
-driver.get(link)
-workshop_data = ExtractWorkShopData()
-output_to_excel(workshop_data)
+model_link = f"https://steamcommunity.com/workshop/browse/?appid=477160&browsesort=trend&section=readytouseitems&requiredtags%5B0%5D=Model&created_date_range_filter_start={start_date}&created_date_range_filter_end={end_date}&updated_date_range_filter_start=NaN&updated_date_range_filter_end=NaN&actualsort=trend&p=1&days=-1"
+driver.get(model_link)
+model_workshop_data = ExtractWorkShopData()
+output_to_excel(level_workshop_data, model_workshop_data)
 
 
