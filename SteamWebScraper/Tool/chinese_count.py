@@ -17,6 +17,7 @@ import math
 from decouple import config
 from enum import Enum
 
+
 KEY = config('STEAM_API_KEY')
 url = 'https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/'
 
