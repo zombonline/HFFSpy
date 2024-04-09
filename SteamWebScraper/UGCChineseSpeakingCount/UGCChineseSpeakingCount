@@ -99,6 +99,7 @@ def get_steam_data_from_workshop_css_element(item):
     response = requests.post(url, data=params)
     data = response.json()
     workShopItem = data['response']['publishedfiledetails'][0]
+    print(workShopItem["publishedfileid"])
     user = steam.users.get_user_details(data['response']['publishedfiledetails'][0]['creator'])
     return workShopItem, user
 def create_workshop_item_objects_array(workshop_css_elements):

@@ -11,142 +11,103 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support import expected_conditions as EC
 from steam import Steam
 from datetime import datetime, timedelta
-from langdetect import detect
 import xlsxwriter
 import math
 from decouple import config
 from enum import Enum
 
+import data_functions
+
+def get_workshop_link(start_date, end_date):
+    link = f"https://steamcommunity.com/workshop/browse/?appid=477160&searchtext=&childpublishedfileid=0&browsesort=mostrecent&section=readytouseitems&created_date_range_filter_start={start_date}&created_date_range_filter_end={end_date}&updated_date_range_filter_start=0&updated_date_range_filter_end=0&p=1"
+    return link
+
+def create_workshop_item_objects_array(item_ids):
+    item_objects = []
+    for item_id in item_ids:
+        item_object = data_functions.create_workshop_item(item_id, driver)
+        item_objects.append(item_object)
+    return item_objects
+def write_to_excel(start_date, end_date, workshop_data):
+    workbook = xlsxwriter.Workbook(f'UGCChineseSpeakingCount_Week{week}_{start_date.strftime("%m-%d-%Y")}_to_{end_date.strftime("%m-%d-%Y")}.xlsx')
+    worksheet = workbook.add_worksheet()
+    worksheet.write('A1', 'Date Posted')
+    worksheet.write('B1', 'Title')
+    worksheet.write('C1', 'Creator Name')
+    worksheet.write('D1', 'Type')
+    worksheet.write('E1', 'Country')
+    worksheet.write('F1', 'Language')
+
+    chineseLevels = 0
+    chineseModels = 0
+    totalLevels = 0
+    totalModels = 0
+    for(i, item) in enumerate(workshop_data):
+        worksheet.write(i+1, 0, item.date_posted.strftime("%d-%m-%Y"))
+        worksheet.write(i+1, 1, item.title)
+        worksheet.write(i+1, 2, item.creator_name)
+        worksheet.write(i+1, 3, item.item_type)
+        worksheet.write(i+1, 4, item.country)
+        worksheet.write(i+1, 5, item.detected_language)
+        if item.detected_language == 'zh-cn':
+            if item.item_type == 'Level':
+                chineseLevels += 1
+            elif item.item_type == 'Model':
+                chineseModels += 1
+        if item.item_type == 'Level':
+            totalLevels += 1
+        elif item.item_type == 'Model':
+            totalModels += 1
+    worksheet.write('H2', 'Models')
+    worksheet.write('H3', 'Total Entries')
+    worksheet.write('H4', 'Chinese Entries')
+    worksheet.write('H5', 'Chinese Proportion')
+
+    worksheet.write('H7', 'Levels')
+    worksheet.write('H8', 'Total Entries')
+    worksheet.write('H9', 'Chinese Entries')
+    worksheet.write('H10', 'Chinese Proportion')
+
+    worksheet.write('H12', 'Total')
+    worksheet.write('H13', 'Total Entries')
+    worksheet.write('H14', 'Chinese Entries')
+    worksheet.write('H15', 'Chinese Proportion')
+
+    worksheet.write('I3', totalModels)
+    worksheet.write('I4', chineseModels)
+    worksheet.write('I5', f"{chineseModels/totalModels:.2%}")
+
+    worksheet.write('I8', totalLevels)
+    worksheet.write('I9', chineseLevels)
+    worksheet.write('I10', f"{chineseLevels/totalLevels:.2%}")
+
+    worksheet.write('I13', totalLevels + totalModels)
+    worksheet.write('I14', chineseLevels + chineseModels)
+    worksheet.write('I15', f"{(chineseLevels + chineseModels)/(totalLevels + totalModels):.2%}")
+
+
+    workbook.close()
 
 KEY = config('STEAM_API_KEY')
-url = 'https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/'
+steam = Steam(KEY)
+url = f"https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/"   
 
-class WorkshopItem:
-    def __init__(self, title, creator_ID, creator_name, country, detected_language, date_posted, tags, item_type):
-        self.title = title
-        self.creator_ID = creator_ID
-        self.creator_name = creator_name
-        self.detected_language = detected_language
-        self.country = country
-        self.date_posted = date_posted
-        self.tags = tags
-        self.item_type = item_type
+wait = None  
+driver = None
+def scan(d, start_date, end_date):
+    global driver
+    driver = d
+    global wait
+    wait = WebDriverWait(driver, 10)
 
-def set_workshop_tags(tags):
-    wait.until(lambda driver: driver.find_elements(By.CSS_SELECTOR, 'filterOption') > 0)
-    for tag in tags:
-        for option in driver.find_elements(By.CSS_SELECTOR, 'filterOption'):
-            if tag in option.text:
-                option.click()
-                time.sleep(1)
-                break            
-def set_date_filter_in_url(start_date, end_date):
-    link = f'https://steamcommunity.com/workshop/browse/?appid=477160&searchtext=&childpublishedfileid=0&browsesort=trend&section=readytouseitems&created_date_range_filter_start={start_date}&created_date_range_filter_end={end_date}&updated_date_range_filter_start=NaN&updated_date_range_filter_end=NaN'
-    return link
-def get_workshop_css_elements():
-    try:
-        wait.until(lambda driver: len(driver.find_elements(By.CSS_SELECTOR, 'div.workshopItem')) > 0)
-    except TimeoutException:
-        print("Timed out waiting for page to load")
-        return []
-    workshop_css_elements = driver.find_elements(By.CSS_SELECTOR, 'div.workshopItem')
-    return workshop_css_elements
-def get_steam_data_from_workshop_css_element(item):
-    params = {
-            'key': KEY,
-            'itemcount': 1,
-            'publishedfileids[0]': item.find_element(By.CSS_SELECTOR, 'a').get_attribute('data-publishedfileid')
-        }
-    response = requests.post(url, data=params)
-    data = response.json()
-    workShopItem = data['response']['publishedfiledetails'][0]
-    user = Steam.users.get_user_details(data['response']['publishedfiledetails'][0]['creator'])
-    return workShopItem, user
-def create_workshop_item_objects_array(workshop_css_elements):
-    workshopItems = []
-    for workshop_css_element in workshop_css_elements:
-        workshop_item, user = get_steam_data_from_workshop_css_element(workshop_css_element)
-        #Get Title of workshop item
-        title = workshop_item['title']
-        #Get AuthorID of workshop item
-        creator_id = workshop_item['creator']
-        #Get Author Name of workshop item
-        creator_name = user['player']['personaname']
-        #Get Country of Author
-        country = get_user_country(user)
-        #Get language of workshop item
-        detected_language = get_langauge_from_user_and_item(user, workshop_item)
-        #Get date posted of workshop item
-        date_posted = datetime.fromtimestamp(workshop_item['time_created'])
-        #Get tags of workshop item
-        tags = get_tags(workshop_item['tags'])
-        #Get type of workshop item ("Model" or "Level")
-        item_type = get_item_type_from_tags(tags)
-        #create a new workshop item object and append it to list.
-        workshopItems.append(WorkshopItem(title, creator_id, creator_name, country, detected_language, date_posted, tags, item_type))
-    return workshopItems
-def get_user_country(user):
-    if('loccountrycode' in user['player']):
-        return user['player']['loccountrycode']
-    else:
-        return "N/A"
-def get_langauge_from_user_and_item(user, workshop_item):
-    #chinese override, if the user's country is already display as China, then the language is Chinese
-    if(get_user_country(user) == 'CN'):
-        return 'zh-cn'
-    strings = []
-    if user is None:
-        pass
-    else:
-        if('personaname' in user['player']):
-            strings.append(user['player']['personaname'])
-        if('realname' in user['player']):
-            strings.append(user['player']['realname'])
-        if('bio' in user['player']):
-            strings.append(user['player']['bio'])
-    if workshop_item is None:
-        pass
-    else:
-        if('title' in workshop_item):
-            strings.append(workshop_item['title'])
-        if('description' in workshop_item):
-            strings.append(workshop_item['description'])
-    newString = ""
-    for string in strings:
-        newString = newString + ", " + string
-    try:
-        detected_language = detect(newString)
-    except:
-        detected_language = "N/A"
+    link = get_workshop_link(start_date, end_date)
+    driver.get(link)
 
-    #Chinese override (Example: if a player has a chinese username, but is using english in title/description of the item,
-    #the language might be detected as english, but we want to override that and set it to chinese)
-    if 'zh' not in detected_language:
-        for string in strings:
-            try:
-                if 'zh' in detect(string):
-                    detected_language = 'zh-cn'
-                    break
-            except:
-                continue
-    return detected_language
-def get_tags(tags):
-    tag_strings = [tag['tag'] for tag in tags]
-    tag_string = ', '.join(tag_strings)
-    return tag_string
-def get_item_type_from_tags(tags):
-    if('Model' in tags):
-        return "Model"
-    elif('Levels' in tags):
-        return "Level"
-    elif('Lobbies' in tags):
-        return "Lobby"
-    else:
-        return "N/A"
+    workshop_data = []
+    for item in create_workshop_item_objects_array(data_functions.get_item_ids(driver)):
+        workshop_data.append(item)
 
-start_date = datetime(2021, 1, 1)
-end_date = datetime(2021, 1, 7)
-tags = []
-driver = webdriver.Chrome()
-wait = WebDriverWait(driver, 10)
+    for item in workshop_data:
+        write_to_excel(start_date, end_date, workshop_data)
+
 
