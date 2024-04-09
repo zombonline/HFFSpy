@@ -1,0 +1,3 @@
+comments:0
+ratings:0
+display_browser:1
