@@ -20,6 +20,7 @@ import math
 from decouple import config
 from enum import Enum
 
+import TopUGC
 import TotalUGC
 import threading
 app = tk.Tk()
@@ -40,11 +41,16 @@ def set_up_home_page():
     # Create the title
     title_label = ctk.CTkLabel(home_canvas, text="Home", text_color='black', font=("Arial", 24))
     title_label.pack()
+    #Create the 'Download Chromdriver here' button
+    download_chromedriver_button = ctk.CTkButton(home_canvas, text="Download Chromedriver here", command=lambda: os.system("start https://googlechromelabs.github.io/chrome-for-testing/"))
+    download_chromedriver_button.pack()
     #Navigation Buttons
     total_UGC_count_button = ctk.CTkButton(home_canvas, text="Total UGC Count", command=lambda: load_page("Total UGC Count"))   
     total_UGC_count_button.pack()
     total_chinese_count_button = ctk.CTkButton(home_canvas, text="Total Chinese Count", command=lambda: load_page("Total Chinese Count"))
     total_chinese_count_button.pack()
+    top_ugc_of_workshop_month_button = ctk.CTkButton(home_canvas, text="Top UGC of Workshop Month", command=lambda: load_page("Top Monthly Workshop Items"))
+    top_ugc_of_workshop_month_button.pack()
 def set_up_total_UGC_count_page():
     # Create the total UGC count frame
     total_UGC_count_frame = ctk.CTkFrame(main_frame)
@@ -109,6 +115,40 @@ def set_up_total_chinese_count_page():
     # Create the 'scrape page' button
     scrape_page_button = ctk.CTkButton(total_chinese_count_canvas, text="Scrape Page", command=lambda: chinese_count_scrape_page_button_click())
     scrape_page_button.pack()
+def set_up_top_ugc_of_workshop_month_page():
+    # Create the top monthly workshop items frame
+    top_monthly_workshop_items_frame = ctk.CTkFrame(main_frame)
+    top_monthly_workshop_items_frame.pack(expand=True, fill="both")
+    # Create the top monthly workshop items canvas
+    top_monthly_workshop_items_canvas = ctk.CTkCanvas(top_monthly_workshop_items_frame)
+    top_monthly_workshop_items_canvas.pack(expand=True, fill="both")
+    # Create the title
+    title_label = ctk.CTkLabel(top_monthly_workshop_items_canvas, text="Top Monthly Workshop Items", text_color='black', font=("Arial", 24))
+    title_label.pack()
+    # Create the back button
+    back_button = ctk.CTkButton(top_monthly_workshop_items_canvas, text="Back", command=lambda: load_page("Home"))
+    back_button.pack()
+    # Create the date range frame
+    date_range_frame = ctk.CTkFrame(top_monthly_workshop_items_canvas)
+    date_range_frame.pack()
+    # Create the date range start input
+    date_range_start_label = ctk.CTkLabel(date_range_frame, text="Date Range Start", text_color='black')
+    date_range_start_label.grid(row=0, column=0, padx=10)
+    date_range_start = DateEntry(date_range_frame, textvariable=date_range_start_input, date_pattern="yyyy-mm-dd")
+    date_range_start.grid(row=1, column=0, padx=10, pady=10)
+    # Create the date range end input
+    date_range_end_label = ctk.CTkLabel(date_range_frame, text="Date Range End", text_color='black')
+    date_range_end_label.grid(row=0, column=1, padx=10)
+    date_range_end = DateEntry(date_range_frame, textvariable=date_range_end_input, date_pattern="yyyy-mm-dd")
+    date_range_end.grid(row=1, column=1, padx=10, pady=10)
+    # Create the amount of items to grab input
+    amount_of_items_label = ctk.CTkLabel(date_range_frame, text="Amount of Items to Grab", text_color='black')
+    amount_of_items_label.grid(row=3, column=0, padx=10)
+    amount_of_items_input = ctk.CTkEntry(date_range_frame)
+    amount_of_items_input.grid(row=4, column=0, padx=10, pady=10)
+    # Create the scan top ugc of workshop month button
+    scan_top_ugc_of_workshop_month_button = ctk.CTkButton(top_monthly_workshop_items_canvas, text="Scan Top UGC of Workshop Month", command=lambda: scan_top_ugc_of_workshop_month_click(date_range_start_input.get(), date_range_end_input.get(), amount_of_items_input.get()))
+    scan_top_ugc_of_workshop_month_button.pack()
 
    
 
@@ -121,6 +161,8 @@ def load_page(page):
         set_up_total_UGC_count_page()
     elif page == "Total Chinese Count":
         set_up_total_chinese_count_page()
+    elif page == "Top Monthly Workshop Items":
+        set_up_top_ugc_of_workshop_month_page()
     elif page == "Scanning":
         set_up_scanning_page()
     else:
@@ -137,7 +179,6 @@ tags_checklist_vars = {}
 #endregion
 #region tkinter functions
 def scan_total_UGC_count_button_click():
-    print("Scan Total UGC Count Button Clicked")
     previous_page = current_page
     load_page("Scanning")
     
@@ -145,11 +186,18 @@ def scan_total_UGC_count_button_click():
         TotalUGC.scan_for_total_UGC_count(driver, wait)
         load_page(previous_page)
     threading.Thread(target=scan_and_load_previous).start()
-
+def scan_top_ugc_of_workshop_month_click(start_date, end_date, amount_of_items):
+    previous_page = current_page
+    load_page("Scanning")
+    
+    def scan_and_load_previous():
+        TopUGC.scan(driver, wait, start_date, end_date, amount_of_items)
+        load_page(previous_page)
+    threading.Thread(target=scan_and_load_previous).start()
 
 def get_selected_list_element_index(list):
     selected_indices = list.curselection()
-    if selected_indices:  # if there is a selection
+    if selected_indices:  
         first_selected_index = selected_indices[0]
         print(first_selected_index)
         return first_selected_index
@@ -180,7 +228,6 @@ def submit_date_range_to_url(start, end):
     end_timestamp = int(datetime.strptime(end, "%Y-%m-%d").timestamp())
     link = f'https://steamcommunity.com/workshop/browse/?appid=477160&searchtext=&childpublishedfileid=0&browsesort=trend&section=readytouseitems&created_date_range_filter_start={start_timestamp}&created_date_range_filter_end={end_timestamp}&updated_date_range_filter_start=NaN&updated_date_range_filter_end=NaN'
     driver.get(link)
-    
 def load_chrome_driver():
     options = Options()
     # options.add_argument("--headless")
