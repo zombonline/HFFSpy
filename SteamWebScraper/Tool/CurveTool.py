@@ -23,6 +23,7 @@ from enum import Enum
 import TopUGC
 import TotalUGC
 import chinese_count
+import data_functions
 app = tk.Tk()
 app.title("Curve Tool")
 app.geometry("800x600")
@@ -159,7 +160,7 @@ def set_up_settings_page():
     back_button.pack()
     # Create the toggle button for "Display browser"
     display_browser_var = tk.IntVar()
-    display_browser_var.set(get_setting_value("display_browser"))
+    display_browser_var.set(data_functions.get_setting_value("display_browser"))
     display_browser_checkbox = tk.Checkbutton(settings_canvas, text="Display browser", variable=display_browser_var)
     display_browser_checkbox.pack()
     # Create the warning label
@@ -167,7 +168,7 @@ def set_up_settings_page():
     warning_label.pack()
     # Create the toggle button for "Scan for comments
     scan_for_comments_var = tk.IntVar()
-    scan_for_comments_var.set(get_setting_value("comments"))
+    scan_for_comments_var.set(data_functions.get_setting_value("comments"))
     scan_for_comments_checkbox = tk.Checkbutton(settings_canvas, text="Scan for comments", variable=scan_for_comments_var)
     scan_for_comments_checkbox.pack()
     # Create warning label
@@ -175,7 +176,7 @@ def set_up_settings_page():
     warning_label.pack()
     # Create the toggle button for "Scan for ratings"
     scan_for_ratings_var = tk.IntVar()
-    scan_for_ratings_var.set(get_setting_value("ratings"))
+    scan_for_ratings_var.set(data_functions.get_setting_value("ratings"))
     scan_for_ratings_checkbox = tk.Checkbutton(settings_canvas, text="Scan for ratings", variable=scan_for_ratings_var)
     scan_for_ratings_checkbox.pack()
     # Create warning label
@@ -183,9 +184,9 @@ def set_up_settings_page():
     warning_label.pack()
     # Create the apply all settings button
     def apply_all_settings():
-        apply_setting_value("display_browser", display_browser_var.get())
-        apply_setting_value("ratings", scan_for_ratings_var.get())
-        apply_setting_value("comments", scan_for_comments_var.get())
+        data_functions.apply_setting_value("display_browser", display_browser_var.get())
+        data_functions.apply_setting_value("ratings", scan_for_ratings_var.get())
+        data_functions.apply_setting_value("comments", scan_for_comments_var.get())
     apply_all_settings_button = ctk.CTkButton(settings_canvas, text="Apply All Settings", command=lambda: apply_all_settings())
     apply_all_settings_button.pack()
 def set_up_creator_page():
@@ -276,24 +277,7 @@ def create_checklist(options, canvas):
     return vars
 
 #endregion
-def apply_setting_value(setting_name, setting_value):
-    setting_file = open("settings.txt", "r")
-    setting_lines = setting_file.readlines()
-    setting_file.close()
-    setting_file = open("settings.txt", "w")
-    for line in setting_lines:
-        if line.split(":")[0] == setting_name:
-            line = f"{setting_name}:{setting_value}\n"
-        setting_file.write(line)
-    setting_file.close()
-def get_setting_value(setting_name):
-    setting_file = open("settings.txt", "r")
-    setting_lines = setting_file.readlines()
-    setting_file.close()
-    for line in setting_lines:
-        if line.split(":")[0] == setting_name:
-            return int(line.split(":")[1])
-    return None
+
 
 def get_timestamp(date_string):
     date = datetime.strptime(date_string, "%Y-%m-%d")
@@ -305,8 +289,8 @@ def load_chrome_driver():
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--log-level=3")
-    print(get_setting_value("display_browser"))
-    if(get_setting_value("display_browser") == 0):
+    print(data_functions.get_setting_value("display_browser"))
+    if(data_functions.get_setting_value("display_browser") == 0):
         options.add_argument("--headless")
         print("No browswer will be displayed")
     base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))

@@ -29,7 +29,9 @@ def create_workshop_item_objects_array(item_ids):
         item_objects.append(item_object)
     return item_objects
 def write_to_excel(start_date, end_date, workshop_data):
-    workbook = xlsxwriter.Workbook(f'UGCChineseSpeakingCount_Week{week}_{start_date.strftime("%m-%d-%Y")}_to_{end_date.strftime("%m-%d-%Y")}.xlsx')
+    start_date = datetime.fromtimestamp(start_date)
+    end_date = datetime.fromtimestamp(end_date)
+    workbook = xlsxwriter.Workbook(f'UGCChineseSpeakingCount{start_date.strftime("%m-%d-%Y")}_to_{end_date.strftime("%m-%d-%Y")}.xlsx')
     worksheet = workbook.add_worksheet()
     worksheet.write('A1', 'Date Posted')
     worksheet.write('B1', 'Title')
@@ -43,13 +45,13 @@ def write_to_excel(start_date, end_date, workshop_data):
     totalLevels = 0
     totalModels = 0
     for(i, item) in enumerate(workshop_data):
-        worksheet.write(i+1, 0, item.date_posted.strftime("%d-%m-%Y"))
+        worksheet.write(i+1, 0, item.date_posted)
         worksheet.write(i+1, 1, item.title)
         worksheet.write(i+1, 2, item.creator_name)
         worksheet.write(i+1, 3, item.item_type)
         worksheet.write(i+1, 4, item.country)
-        worksheet.write(i+1, 5, item.detected_language)
-        if item.detected_language == 'zh-cn':
+        worksheet.write(i+1, 5, item.language)
+        if item.language == 'zh-cn':
             if item.item_type == 'Level':
                 chineseLevels += 1
             elif item.item_type == 'Model':
@@ -72,18 +74,33 @@ def write_to_excel(start_date, end_date, workshop_data):
     worksheet.write('H13', 'Total Entries')
     worksheet.write('H14', 'Chinese Entries')
     worksheet.write('H15', 'Chinese Proportion')
+    
+    try:
+        chineseModelProportion = chineseModels/totalModels
+    except ZeroDivisionError:
+        chineseModelProportion = 0
+    chineseLevelProportion = 0
+    try:
+        chineseLevelProportion = chineseLevels/totalLevels
+    except ZeroDivisionError:
+        chineseLevelProportion = 0
+    chineseProportion = 0
+    try:
+        chineseProportion = (chineseLevels + chineseModels)/(totalLevels + totalModels)
+    except ZeroDivisionError:
+        chineseProportion = 0
 
     worksheet.write('I3', totalModels)
     worksheet.write('I4', chineseModels)
-    worksheet.write('I5', f"{chineseModels/totalModels:.2%}")
+    worksheet.write('I5', f"{chineseModelProportion:.2%}")
 
     worksheet.write('I8', totalLevels)
     worksheet.write('I9', chineseLevels)
-    worksheet.write('I10', f"{chineseLevels/totalLevels:.2%}")
+    worksheet.write('I10', f"{chineseLevelProportion:.2%}")
 
     worksheet.write('I13', totalLevels + totalModels)
     worksheet.write('I14', chineseLevels + chineseModels)
-    worksheet.write('I15', f"{(chineseLevels + chineseModels)/(totalLevels + totalModels):.2%}")
+    worksheet.write('I15', f"{chineseProportion:.2%}")
 
 
     workbook.close()
