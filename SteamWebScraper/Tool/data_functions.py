@@ -55,11 +55,17 @@ def get_item_ids(driver, amount = None):
     if amount is None:
         amount = get_total_items(driver)
     item_ids = []
-    while len(item_ids) < amount:
+    maxItemsFound = False
+    while len(item_ids) < amount and maxItemsFound == False:
         for item_css_element in driver.find_elements(By.CSS_SELECTOR, 'div.workshopItem'):
             item_id = item_css_element.find_element(By.CSS_SELECTOR, 'a').get_attribute('data-publishedfileid')
             item_ids.append(item_id)
         workshop_next_page(driver)
+        try:
+            wait.until(lambda driver: len(driver.find_elements(By.CSS_SELECTOR, 'div.workshopItem')) > 0)
+        except:
+            print("No items on page.")
+        maxItemsFound = len(driver.find_elements(By.CSS_SELECTOR, 'div.workshopItem')) == 0
     return item_ids[:amount]
         
     # wait = WebDriverWait(driver, 10)
@@ -101,8 +107,8 @@ def get_item_and_user_data(item_id):
     user = steam.users.get_user_details(data['response']['publishedfiledetails'][0]['creator'])
     return workShopItem, user
 def create_workshop_item(item_id, driver):
-    get_comments = False
-    get_ratings = False
+    get_comments = get_setting_value("comments")
+    get_ratings = get_setting_value("ratings")
     workshop_item, user = get_item_and_user_data(item_id)
     title = get_item_title(workshop_item)
     creator_id = get_item_creator_id(workshop_item)
@@ -188,12 +194,10 @@ def get_item_comment_count(workshop_item, driver):
     item_url = f"https://steamcommunity.com/sharedfiles/filedetails/?id={file_id}"
     driver.get(item_url)
     try:
-        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "commentthread_count_label")))
-        comment_count = driver.find_element(By.CLASS_NAME, "commentthread_count_label").text.split(' ')[0]
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "comments")))
+        comment_count = driver.find_element(By.CLASS_NAME, "comments").text.split('Comments')[1]
     except TimeoutException:
         comment_count = "0"
-    driver.close()
-    driver.switch_to.window(driver.window_handles[0])
     return comment_count
 def get_item_date_posted(workshop_item):
     date_string = "N/A"
@@ -248,3 +252,23 @@ def get_game_workshop_count(gameAppID, driver):
             print("Timed out waiting for page to load")
             return
     return gameWorkShopItemCount
+
+def apply_setting_value(setting_name, setting_value):
+    setting_file = open("settings.txt", "r")
+    setting_lines = setting_file.readlines()
+    setting_file.close()
+    setting_file = open("settings.txt", "w")
+    for line in setting_lines:
+        if line.split(":")[0] == setting_name:
+            line = f"{setting_name}:{setting_value}\n"
+        setting_file.write(line)
+    setting_file.close()
+
+def get_setting_value(setting_name):
+    setting_file = open("settings.txt", "r")
+    setting_lines = setting_file.readlines()
+    setting_file.close()
+    for line in setting_lines:
+        if line.split(":")[0] == setting_name:
+            return int(line.split(":")[1])
+    return None
