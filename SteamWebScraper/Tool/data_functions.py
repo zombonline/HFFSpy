@@ -272,3 +272,35 @@ def get_setting_value(setting_name):
         if line.split(":")[0] == setting_name:
             return int(line.split(":")[1])
     return None
+def log_in_steam_user(user, password, driver):
+    driver.get('https://steamcommunity.com/login/home')
+    wait = WebDriverWait(driver, 10)
+    try:
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "_2eKVn6g5Yysx9JmutQe7WV")))
+    except TimeoutException:
+        print("Could not find username input.")
+        return
+    username_input = driver.find_elements(By.CLASS_NAME, "_2eKVn6g5Yysx9JmutQe7WV")[0]
+    password_input = driver.find_elements(By.CLASS_NAME, "_2eKVn6g5Yysx9JmutQe7WV")[1]
+    username_input.send_keys(user)
+    password_input.send_keys(password)
+    submit_button = driver.find_element(By.CLASS_NAME, "_2QgFEj17t677s3x299PNJQ")
+    submit_button.click()
+    try:
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "HPSuAjHOkNfMHwURXTns7")))
+    except TimeoutException:
+        print("No verification screen found.")
+def verify_steam_user_log_in(verify_code, driver):
+    wait = WebDriverWait(driver, 10)
+    try:
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "HPSuAjHOkNfMHwURXTns7")))
+    except TimeoutException:
+        print("No verification screen found.")
+    
+    verification_inputs = driver.find_elements(By.CLASS_NAME, "HPSuAjHOkNfMHwURXTns7")
+    for i in range(len(verify_code)):
+        verification_inputs[i].send_keys(verify_code[i])
+
+    
+                                                   
+
