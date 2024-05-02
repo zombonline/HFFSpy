@@ -56,6 +56,8 @@ def set_up_home_page():
     settings_button.pack()
     creator_button = ctk.CTkButton(home_canvas, text="Creator", command=lambda: load_page("Creator"))
     creator_button.pack()
+    steam_login_button = ctk.CTkButton(home_canvas, text="Steam Login", command=lambda: load_page("Steam Login"))
+    steam_login_button.pack()
 def set_up_total_UGC_count_page():
     # Create the total UGC count frame
     total_UGC_count_frame = ctk.CTkFrame(main_frame)
@@ -212,6 +214,41 @@ def set_up_creator_page():
     # Create the back button
     back_button = ctk.CTkButton(creator_canvas, text="Back", command=lambda: load_page("Home"))
     back_button.pack()
+def set_up_steam_login_page():
+    # Create the steam login frame
+    steam_login_frame = ctk.CTkFrame(main_frame)
+    steam_login_frame.pack(expand=True, fill="both")
+    # Create the steam login canvas
+    steam_login_canvas = ctk.CTkCanvas(steam_login_frame)
+    steam_login_canvas.pack(expand=True, fill="both")
+    # Create the title
+    title_label = ctk.CTkLabel(steam_login_canvas, text="Steam Login", text_color='black', font=("Arial", 24))
+    title_label.pack()
+    # Create the back button
+    back_button = ctk.CTkButton(steam_login_canvas, text="Back", command=lambda: load_page("Home"))
+    back_button.pack()
+    # Create the username input
+    username_label = ctk.CTkLabel(steam_login_canvas, text="Username", text_color='black')
+    username_label.pack()
+    username_input = ctk.CTkEntry(steam_login_canvas, textvariable=username_input_var, text_color='black')
+    username_input.pack()
+    # Create the password input
+    password_label = ctk.CTkLabel(steam_login_canvas, text="Password", text_color='black')
+    password_label.pack()
+    password_input = ctk.CTkEntry(steam_login_canvas, show="*", textvariable=password_input_var, text_color='black')
+    password_input.pack()
+    # Create the login button
+    login_button = ctk.CTkButton(steam_login_canvas, text="Login", command=lambda: data_functions.log_in_steam_user(username_input.get(), password_input.get(), driver))
+    login_button.pack()
+    # Create the verify code input
+    verify_code_label = ctk.CTkLabel(steam_login_canvas, text="Verify Code", text_color='black')
+    verify_code_label.pack()
+    verify_code_input = ctk.CTkEntry(steam_login_canvas, textvariable=verify_code_input_var, text_color='black')
+    verify_code_input.pack()
+    # Create the verify code button
+    verify_code_button = ctk.CTkButton(steam_login_canvas, text="Verify", command=lambda: data_functions.verify_steam_user_log_in(verify_code_input.get(), driver))
+    verify_code_button.pack()
+
 def load_page(page):
     for widget in main_frame.winfo_children():
         widget.destroy()
@@ -229,15 +266,19 @@ def load_page(page):
         set_up_settings_page()
     elif page == "Creator":
         set_up_creator_page()
+    elif page == "Steam Login":
+        set_up_steam_login_page()
     else:
         print("Error: Page not found")
         return
     global current_page
-    current_page = page
-
+    current_page = page  
 #region input elements
 date_range_start_input = tk.StringVar()
 date_range_end_input = tk.StringVar()
+username_input_var = tk.StringVar()
+password_input_var = tk.StringVar()
+verify_code_input_var = tk.StringVar()
 tags_checklist_vars = {}
 #endregion
 #region tkinter functions
@@ -278,14 +319,12 @@ def create_checklist(options, canvas):
 
 #endregion
 
-
 def get_timestamp(date_string):
     date = datetime.strptime(date_string, "%Y-%m-%d")
     return int(date.timestamp())
 
 def load_chrome_driver():
     options = Options()
-    # options.add_argument("--headless")
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--log-level=3")
