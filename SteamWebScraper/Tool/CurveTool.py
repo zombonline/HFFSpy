@@ -3,22 +3,13 @@ import customtkinter as ctk
 from tkcalendar import DateEntry
 import os
 import sys
-import time
-import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.support import expected_conditions as EC
 from steam import Steam
-from datetime import datetime, timedelta
-from langdetect import detect
-import xlsxwriter
-import math
+from datetime import datetime
 from decouple import config
-from enum import Enum
 
 import TopUGC
 import TotalUGC
@@ -368,24 +359,6 @@ def load_page(page):
         return
     global current_page
     current_page = page  
-#region tkinter functions
-def get_selected_list_element_index(list):
-    selected_indices = list.curselection()
-    if selected_indices:  
-        first_selected_index = selected_indices[0]
-        print(first_selected_index)
-        return first_selected_index
-    else:
-        return None
-def create_checklist(options, canvas):
-    vars = {}
-    for i in range(len(options)):
-        var = tk.IntVar()
-        vars[options[i]] = var
-        options[i] = tk.Checkbutton(canvas, text=options[i], variable=var, onvalue=1, offvalue=0)
-        options[i].grid(column=i//7, row=i%7)
-    return vars
-#endregion
 
 def get_timestamp(date_string):
     date = datetime.strptime(date_string, "%Y-%m-%d")
