@@ -24,14 +24,19 @@ import TopUGC
 import TotalUGC
 import chinese_count
 import data_functions
-app = tk.Tk()
-app.title("Curve Tool")
-app.geometry("800x600")
 
-# Create the main frame
-main_frame = ctk.CTkFrame(app)
-main_frame.pack(expand=True, fill="both")
-
+def set_up_header(account_name):
+    for widget in header_frame.winfo_children():
+        widget.destroy()
+# Create the header canvas
+    header_canvas = ctk.CTkCanvas(header_frame, height=50, bg='lightblue')
+    header_canvas.pack(expand=False, fill="both")
+# Create the header label
+    if account_name:
+        header_label = ctk.CTkLabel(header_canvas, text="Logged in as: " + account_name, text_color='black', font=("Arial", 24))
+    else:
+        header_label = ctk.CTkLabel(header_canvas, text="Not logged in", text_color='black', font=("Arial", 24))
+    header_label.pack()
 def set_up_home_page():
     # Create the home frame
     home_frame = ctk.CTkFrame(main_frame)
@@ -72,6 +77,12 @@ def set_up_total_UGC_count_page():
     back_button = ctk.CTkButton(total_UGC_count_canvas, text="Back", command=lambda: load_page("Home"))
     back_button.pack()
     # Create the scan total UGC count button
+    def scan_total_UGC_count_button_click():
+        previous_page = current_page
+        load_page("Scanning")
+        app.update()
+        TotalUGC.scan_for_total_UGC_count(driver)
+        load_page(previous_page)
     scan_total_UGC_count_button = ctk.CTkButton(total_UGC_count_canvas, text="Scan Total UGC Count", command=lambda: scan_total_UGC_count_button_click())
     scan_total_UGC_count_button.pack()
 def set_up_scanning_page():
@@ -111,9 +122,22 @@ def set_up_total_chinese_count_page():
     date_range_end = DateEntry(date_range_frame, textvariable=date_range_end_input, date_pattern="yyyy-mm-dd")
     date_range_end.grid(row=1, column=1, padx=10, pady=10)
     # Create the 'scrape page' button
+    def scan_total_chinese_count_button_click(start_date, end_date):
+        previous_page = current_page
+        load_page("Scanning")
+        app.update()
+        chinese_count.scan(driver, get_timestamp(start_date), get_timestamp(end_date))
+        load_page(previous_page)
     scrape_page_button = ctk.CTkButton(total_chinese_count_canvas, text="Scan", command=lambda: scan_total_chinese_count_button_click(date_range_start_input.get(), date_range_end_input.get()))
     scrape_page_button.pack()
 def set_up_top_ugc_of_workshop_month_page():
+
+    #This search may require a user to be logged in depending on settings so a check is made here.
+    #If ratings are enabled and user is not logged in, the user is redirected to the steam login page.
+    if data_functions.get_setting_value("ratings_levels") == 1 or data_functions.get_setting_value("ratings_models") == 1:
+        if not data_functions.check_steam_user_logged_in(driver):
+            load_page("Steam Login")
+            return
     # Create the top monthly workshop items frame
     top_monthly_workshop_items_frame = ctk.CTkFrame(main_frame)
     top_monthly_workshop_items_frame.pack(expand=True, fill="both")
@@ -145,6 +169,12 @@ def set_up_top_ugc_of_workshop_month_page():
     amount_of_items_input = ctk.CTkEntry(date_range_frame)
     amount_of_items_input.grid(row=4, column=0, padx=10, pady=10)
     # Create the scan top ugc of workshop month button
+    def scan_top_ugc_of_workshop_month_button_click(start_date, end_date, amount_of_items):
+        previous_page = current_page
+        load_page("Scanning")
+        app.update()
+        TopUGC.scan(driver, get_timestamp(start_date), get_timestamp(end_date), amount_of_items)
+        load_page(previous_page)
     scan_top_ugc_of_workshop_month_button = ctk.CTkButton(top_monthly_workshop_items_canvas, text="Scan Top UGC of Workshop Month", command=lambda: scan_top_ugc_of_workshop_month_button_click(date_range_start_input.get(), date_range_end_input.get(), int(amount_of_items_input.get())))
     scan_top_ugc_of_workshop_month_button.pack()
 def set_up_settings_page():
@@ -168,27 +198,46 @@ def set_up_settings_page():
     # Create the warning label
     warning_label = ctk.CTkLabel(settings_canvas, text="Please restart the tool to apply this setting.", text_color='red')
     warning_label.pack()
-    # Create the toggle button for "Scan for comments
-    scan_for_comments_var = tk.IntVar()
-    scan_for_comments_var.set(data_functions.get_setting_value("comments"))
-    scan_for_comments_checkbox = tk.Checkbutton(settings_canvas, text="Scan for comments", variable=scan_for_comments_var)
-    scan_for_comments_checkbox.pack()
+    #Create the label "Scan for comments"
+    scan_for_comments_label = ctk.CTkLabel(settings_canvas, text="Scan for comments", text_color='black')
+    scan_for_comments_label.pack()
+    # Create the toggle button for "Scan for comments for levels"
+    scan_for_comments_levels_var = tk.IntVar()
+    scan_for_comments_levels_var.set(data_functions.get_setting_value("comments_levels"))
+    scan_for_comments_levels_checkbox = tk.Checkbutton(settings_canvas, text="Levels", variable=scan_for_comments_levels_var)
+    scan_for_comments_levels_checkbox.pack()
+    # Create the toggle button for "Scan for comments for models"
+    scan_for_comments_models_var = tk.IntVar()
+    scan_for_comments_models_var.set(data_functions.get_setting_value("comments_models"))
+    scan_for_comments_models_checkbox = tk.Checkbutton(settings_canvas, text="Models", variable=scan_for_comments_models_var)
+    scan_for_comments_models_checkbox.pack()
     # Create warning label
-    warning_label = ctk.CTkLabel(settings_canvas, text="Warning: As the python steam api does not track comment counts, this is done via the browser, which will increase scanning time significantly.", text_color='red')
+    warning_label = ctk.CTkLabel(settings_canvas, text="Warning: As the python steam api does not \ntrack comment counts, this is done via the browser, \nwhich will increase scanning time significantly.", text_color='red')
     warning_label.pack()
+    #Create the label "Scan for ratings"
+    scan_for_ratings_label = ctk.CTkLabel(settings_canvas, text="Scan for ratings", text_color='black')
+    scan_for_ratings_label.pack()
     # Create the toggle button for "Scan for ratings"
-    scan_for_ratings_var = tk.IntVar()
-    scan_for_ratings_var.set(data_functions.get_setting_value("ratings"))
-    scan_for_ratings_checkbox = tk.Checkbutton(settings_canvas, text="Scan for ratings", variable=scan_for_ratings_var)
-    scan_for_ratings_checkbox.pack()
+    scan_for_ratings_levels_var = tk.IntVar()
+    scan_for_ratings_levels_var.set(data_functions.get_setting_value("ratings_levels"))
+    scan_for_ratings_levels_checkbox = tk.Checkbutton(settings_canvas, text="Levels", variable=scan_for_ratings_levels_var)
+    scan_for_ratings_levels_checkbox.pack()
+    # Create the toggle button for "Scan for ratings for models"
+    scan_for_ratings_models_var = tk.IntVar()
+    scan_for_ratings_models_var.set(data_functions.get_setting_value("ratings_models"))
+    scan_for_ratings_models_checkbox = tk.Checkbutton(settings_canvas, text="Models", variable=scan_for_ratings_models_var)
+    scan_for_ratings_models_checkbox.pack()
     # Create warning label
-    warning_label = ctk.CTkLabel(settings_canvas, text="Warning: Ratings are also tracked via the browser, increasing scanning time. They also require a valid log in.", text_color='red')
+    warning_label = ctk.CTkLabel(settings_canvas, text="Warning: Ratings are also tracked via the \nbrowser, increasing scanning time. They also require \na valid log in.", text_color='red')
     warning_label.pack()
     # Create the apply all settings button
     def apply_all_settings():
         data_functions.apply_setting_value("display_browser", display_browser_var.get())
-        data_functions.apply_setting_value("ratings", scan_for_ratings_var.get())
-        data_functions.apply_setting_value("comments", scan_for_comments_var.get())
+        data_functions.apply_setting_value("ratings_levels", scan_for_ratings_levels_var.get())
+        data_functions.apply_setting_value("ratings_models", scan_for_ratings_models_var.get())
+        data_functions.apply_setting_value("comments_levels", scan_for_comments_levels_var.get())
+        data_functions.apply_setting_value("comments_models", scan_for_comments_models_var.get())
+
     apply_all_settings_button = ctk.CTkButton(settings_canvas, text="Apply All Settings", command=lambda: apply_all_settings())
     apply_all_settings_button.pack()
 def set_up_creator_page():
@@ -202,14 +251,39 @@ def set_up_creator_page():
     title_label = ctk.CTkLabel(creator_canvas, text="Creator", text_color='black', font=("Arial", 24))
     title_label.pack()
     # Read the crator_status txt file
-    creator_status_file = open("CreatorStatus.txt", "r")
+    creator_status_file = open("creator_status.txt", "r")
     creator_status_lines = creator_status_file.readlines()
     creator_status_file.close()
     # Create the creator status listbox
-    creator_status_listbox = ctk.CTkListbox(creator_canvas)
+    creator_status_listbox = tk.Listbox(creator_canvas)
     creator_status_listbox.pack()
     for line in creator_status_lines:
-        creator_status_listbox.insert("end", line)
+        creator = line.split(":")[0]
+        creator_status_listbox.insert("end", creator)
+    # Create the 'Add creator' input
+    creator_input = ctk.CTkEntry(creator_canvas, text_color='black')
+    creator_input.pack()
+    #Create the 'Add as signed_creator' button
+    def add_as_signed_creator_button_click():
+        with open("creator_status.txt", "a") as creator_status_file:
+            creator_status_file.write(creator_input.get() + ":signed_creator\n")
+        creator_status_listbox.insert("end", creator_input.get())
+    add_as_signed_creator_button = ctk.CTkButton(creator_canvas, text="Add as signed creator", command=lambda: add_as_signed_creator_button_click())
+    add_as_signed_creator_button.pack()
+    #Create the 'Add as contacted creator' button
+    def add_as_contacted_creator_button_click():
+        with open("creator_status.txt", "a") as creator_status_file:
+            creator_status_file.write(creator_input.get() + ":contacted_creator\n")
+        creator_status_listbox.insert("end", creator_input.get())
+    add_as_contacted_creator_button = ctk.CTkButton(creator_canvas, text="Add as contacted creator", command=lambda: add_as_contacted_creator_button_click())
+    add_as_contacted_creator_button.pack()
+    #Create the 'Add as pending contact creator' button
+    def add_as_pending_contact_creator_button_click():
+        with open("creator_status.txt", "a") as creator_status_file:
+            creator_status_file.write(creator_input.get() + ":pending_contact_creator\n")
+        creator_status_listbox.insert("end", creator_input.get())
+    add_as_pending_contact_creator_button = ctk.CTkButton(creator_canvas, text="Add as pending contact creator", command=lambda: add_as_pending_contact_creator_button_click())
+    add_as_pending_contact_creator_button.pack()
     
     # Create the back button
     back_button = ctk.CTkButton(creator_canvas, text="Back", command=lambda: load_page("Home"))
@@ -238,17 +312,38 @@ def set_up_steam_login_page():
     password_input = ctk.CTkEntry(steam_login_canvas, show="*", textvariable=password_input_var, text_color='black')
     password_input.pack()
     # Create the login button
-    login_button = ctk.CTkButton(steam_login_canvas, text="Login", command=lambda: data_functions.log_in_steam_user(username_input.get(), password_input.get(), driver))
+    login_button = ctk.CTkButton(steam_login_canvas, text="Login", command=lambda: login_button_click())
     login_button.pack()
-    # Create the verify code input
-    verify_code_label = ctk.CTkLabel(steam_login_canvas, text="Verify Code", text_color='black')
-    verify_code_label.pack()
-    verify_code_input = ctk.CTkEntry(steam_login_canvas, textvariable=verify_code_input_var, text_color='black')
-    verify_code_input.pack()
-    # Create the verify code button
-    verify_code_button = ctk.CTkButton(steam_login_canvas, text="Verify", command=lambda: data_functions.verify_steam_user_log_in(verify_code_input.get(), driver))
-    verify_code_button.pack()
-
+    def login_button_click():
+        state = data_functions.log_in_steam_user(username_input_var.get(), password_input_var.get(), driver)
+        if state == 0:
+            set_up_header(username_input_var.get())
+            load_page("Home")
+        elif state == 1:
+            # Create the verify code input
+            verify_code_label = ctk.CTkLabel(steam_login_canvas, text="Verify Code", text_color='black')
+            verify_code_label.pack()
+            verify_code_input = ctk.CTkEntry(steam_login_canvas, textvariable=verify_code_input_var, text_color='black')
+            verify_code_input.pack()
+            # Create the verify code button
+            def verify_code_button_click():
+                data_functions.verify_steam_user_log_in(verify_code_input.get(), driver)
+                set_up_header(data_functions.check_steam_user_logged_in(driver))
+            verify_code_button = ctk.CTkButton(steam_login_canvas, text="Verify", command=lambda: verify_code_button_click())
+            verify_code_button.pack()
+        elif state == 2:
+            #Create the please check steam app label
+            please_check_steam_app_label = ctk.CTkLabel(steam_login_canvas, text="Please confirm log in on the Steam app", text_color='black')
+            please_check_steam_app_label.pack()
+            #Create the "I'm done" button
+            def im_done_button_click():
+                set_up_header(data_functions.check_steam_user_logged_in(driver))
+                load_page("Home")
+            im_done_button = ctk.CTkButton(steam_login_canvas, text="I'm done", command=lambda: im_done_button_click())
+            im_done_button.pack()
+        else:
+            print("Error: Unknown state")   
+            
 def load_page(page):
     for widget in main_frame.winfo_children():
         widget.destroy()
@@ -273,33 +368,7 @@ def load_page(page):
         return
     global current_page
     current_page = page  
-#region input elements
-date_range_start_input = tk.StringVar()
-date_range_end_input = tk.StringVar()
-username_input_var = tk.StringVar()
-password_input_var = tk.StringVar()
-verify_code_input_var = tk.StringVar()
-tags_checklist_vars = {}
-#endregion
 #region tkinter functions
-def scan_total_UGC_count_button_click():
-    previous_page = current_page
-    load_page("Scanning")
-    app.update()
-    TotalUGC.scan_for_total_UGC_count(driver)
-    load_page(previous_page)
-def scan_top_ugc_of_workshop_month_button_click(start_date, end_date, amount_of_items):
-    previous_page = current_page
-    load_page("Scanning")
-    app.update()
-    TopUGC.scan(driver, get_timestamp(start_date), get_timestamp(end_date), amount_of_items)
-    load_page(previous_page)
-def scan_total_chinese_count_button_click(start_date, end_date):
-    previous_page = current_page
-    load_page("Scanning")
-    app.update()
-    chinese_count.scan(driver, get_timestamp(start_date), get_timestamp(end_date))
-    load_page(previous_page)
 def get_selected_list_element_index(list):
     selected_indices = list.curselection()
     if selected_indices:  
@@ -316,7 +385,6 @@ def create_checklist(options, canvas):
         options[i] = tk.Checkbutton(canvas, text=options[i], variable=var, onvalue=1, offvalue=0)
         options[i].grid(column=i//7, row=i%7)
     return vars
-
 #endregion
 
 def get_timestamp(date_string):
@@ -338,15 +406,37 @@ def load_chrome_driver():
     if not os.path.exists(chrome_driver_path):
         print("ChromeDriver not found. Please download the latest version of ChromeDriver from https://sites.google.com/chromium.org/driver/ and place it in the same directory as this script.")
         input("Press Enter to close the program...")
-        sys.exit(1)
+        return None
     webdriver_service = Service(chrome_driver_path)
     driver = webdriver.Chrome(service=webdriver_service, options=options)
     return driver
+
+app = tk.Tk()
+app.title("Curve Tool")
+app.geometry("400x400")
+
+# Create the header frame
+header_frame = ctk.CTkFrame(app, height=50)
+header_frame.pack(expand=False, fill="both")
+# Create the main frame
+main_frame = ctk.CTkFrame(app)
+main_frame.pack(expand=True, fill="both")
+
+#region input elements
+date_range_start_input = tk.StringVar()
+date_range_end_input = tk.StringVar()
+username_input_var = tk.StringVar()
+password_input_var = tk.StringVar()
+verify_code_input_var = tk.StringVar()
+tags_checklist_vars = {}
+#endregion
+
 KEY = config('STEAM_API_KEY')
 steam = Steam(KEY)
 url = f"https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/"   
 current_page = "Home"
 load_page(current_page)
+set_up_header(False)
 driver = load_chrome_driver()
 wait = WebDriverWait(driver, 10)
 app.mainloop()

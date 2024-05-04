@@ -1,3 +1,4 @@
+import time
 from langdetect import detect
 from steam import Steam
 from decouple import config
@@ -95,6 +96,7 @@ def get_item_creator_status(creator_id):
                     return CreatorStatus(4)
     except:
         return CreatorStatus(4)
+
 def get_item_and_user_data(item_id):
     params = {
             'key': KEY,
@@ -106,9 +108,8 @@ def get_item_and_user_data(item_id):
     workShopItem = data['response']['publishedfiledetails'][0]
     user = steam.users.get_user_details(data['response']['publishedfiledetails'][0]['creator'])
     return workShopItem, user
+
 def create_workshop_item(item_id, driver):
-    get_comments = get_setting_value("comments")
-    get_ratings = get_setting_value("ratings")
     workshop_item, user = get_item_and_user_data(item_id)
     title = get_item_title(workshop_item)
     creator_id = get_item_creator_id(workshop_item)
@@ -116,33 +117,48 @@ def create_workshop_item(item_id, driver):
     country = get_item_creator_country(user)
     detected_language = get_item_creator_language(user, workshop_item)
     tus = get_item_tus(workshop_item)
-    if get_ratings:
-        rating = get_item_rating(workshop_item) 
-    else:
-        rating = "N/A"
-    if get_comments:
-        comment_count = get_item_comment_count(workshop_item, driver)
-    else:
-        comment_count = "N/A"
     date_posted = get_item_date_posted(workshop_item)
     tags = get_item_tags(workshop_item)
     item_type = get_item_type_from_tags(tags)
+    if(item_type == "Level"):
+        if(get_setting_value("ratings_levels") == 1):
+            rating = get_item_rating(workshop_item, driver)
+        else:
+            rating = "N/A"
+        if(get_setting_value("comments_levels") == 1):
+            comment_count = get_item_comment_count(workshop_item, driver)
+        else:
+            comment_count = "N/A"
+    if(item_type == "Model"):
+        if(get_setting_value("ratings_models") == 1):
+            rating = get_item_rating(workshop_item, driver)
+        else:
+            rating = "N/A"
+        if(get_setting_value("comments_models") == 1):
+            comment_count = get_item_comment_count(workshop_item, driver)
+        else:
+            comment_count = "N/A"
     creator_status = get_item_creator_status(creator_id)
     return WorkshopItem(title, creator_id, creator_name, country, detected_language, tus, rating, comment_count, date_posted, tags, item_type, creator_status)
+
 def get_item_title(workshop_item):
     return workshop_item['title']
+
 def get_item_creator_id(workshop_item):
     return workshop_item['creator']
+
 def get_item_creator_name(user):
     if('personaname' in user['player']):
         return user['player']['personaname']
     else:
         return "N/A"
+
 def get_item_creator_country(user):
     if('loccountrycode' in user['player']):
         return user['player']['loccountrycode']
     else:
         return "N/A"
+
 def get_item_creator_language(user, workshop_item):
     #chinese override, if the user's country is already display as China, then the language is Chinese
     if(get_item_creator_country(user) == 'CN'):
@@ -183,28 +199,43 @@ def get_item_creator_language(user, workshop_item):
             except:
                 continue
     return detected_language
+
 def get_item_tus(workshop_item):
     return workshop_item['subscriptions']
-def get_item_rating(workshop_item):
-    return("N/A")
-def get_item_comment_count(workshop_item, driver):
+
+def get_item_rating(workshop_item, driver):
     wait = WebDriverWait(driver, 10)
-    #get link to workshop item page via steam
     file_id = workshop_item["publishedfileid"]
     item_url = f"https://steamcommunity.com/sharedfiles/filedetails/?id={file_id}"
-    driver.get(item_url)
+    if driver.current_url != item_url:
+        driver.get(item_url)
+    try:
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "workshopAdminStatsBarPercent")))
+        rating = driver.find_element(By.CLASS_NAME, "workshopAdminStatsBarPercent").text
+        print(rating)
+    except TimeoutException:
+        rating = "N/A"
+
+def get_item_comment_count(workshop_item, driver):
+    wait = WebDriverWait(driver, 10)
+    file_id = workshop_item["publishedfileid"]
+    item_url = f"https://steamcommunity.com/sharedfiles/filedetails/?id={file_id}"
+    if driver.current_url != item_url:
+        driver.get(item_url)
     try:
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "comments")))
         comment_count = driver.find_element(By.CLASS_NAME, "comments").text.split('Comments')[1]
     except TimeoutException:
         comment_count = "0"
     return comment_count
+
 def get_item_date_posted(workshop_item):
     date_string = "N/A"
     if('time_created' in workshop_item):
         date = datetime.fromtimestamp(workshop_item['time_created'])
         date_string = date.strftime("%d/%m/%Y")
     return date_string
+
 def get_item_tags(workshop_item):
     tags = "N/A"
     if('tags' in workshop_item):
@@ -213,6 +244,7 @@ def get_item_tags(workshop_item):
         tag_string = ', '.join(tag_strings)
         return tag_string
     return tags
+
 def get_item_type_from_tags(tags):
     if('Model' in tags):
         return "Model"
@@ -272,7 +304,12 @@ def get_setting_value(setting_name):
         if line.split(":")[0] == setting_name:
             return int(line.split(":")[1])
     return None
+
 def log_in_steam_user(user, password, driver):
+    #This function will take the user and password args, load the steam log in page and log in the user.
+    #If the log in is succesful, the function will return 0
+    #If there is a verification code screen shown, the program will return 1
+    #If there is a "use steam mobile app to log in" screen shown, the program will return 2
     driver.get('https://steamcommunity.com/login/home')
     wait = WebDriverWait(driver, 10)
     try:
@@ -286,10 +323,16 @@ def log_in_steam_user(user, password, driver):
     password_input.send_keys(password)
     submit_button = driver.find_element(By.CLASS_NAME, "_2QgFEj17t677s3x299PNJQ")
     submit_button.click()
-    try:
-        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "HPSuAjHOkNfMHwURXTns7")))
-    except TimeoutException:
-        print("No verification screen found.")
+    if check_steam_user_logged_in(driver):
+        print("Logged in.")
+        return 0
+    elif len(driver.find_elements(By.CLASS_NAME, "HPSuAjHOkNfMHwURXTns7")) > 0:
+        print("Verification code screen found.")
+        return 1
+    elif len(driver.find_elements(By.CLASS_NAME, "_7LmnTPGNvHEfRVizEiGEV")) > 0:
+        print("Use steam mobile app to log in screen found.")
+        return 2    
+
 def verify_steam_user_log_in(verify_code, driver):
     wait = WebDriverWait(driver, 10)
     try:
@@ -301,6 +344,15 @@ def verify_steam_user_log_in(verify_code, driver):
     for i in range(len(verify_code)):
         verification_inputs[i].send_keys(verify_code[i])
 
-    
-                                                   
-
+def check_steam_user_logged_in(driver):
+    wait = WebDriverWait(driver, 10)
+    try:
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "account_name")))
+        time.sleep(2)
+        account_name = driver.find_element(By.ID, "account_dropdown").get_attribute('innerHTML')
+        account_name = account_name.split('<span class="account_name">')[1].split('</span>')[0]
+        print(f"Logged in as {account_name}")
+        print(bool(account_name))
+        return account_name
+    except TimeoutException:
+        return False

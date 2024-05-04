@@ -94,7 +94,7 @@ def scan(d, start_date, end_date, amount_of_items):
 
     item_ids = data_functions.get_item_ids(driver, amount_of_items)
     model_workshop_data = create_workshop_item_objects_array(item_ids)
-    model_workshop_data = create_workshop_item_objects_array(item_ids)
+    
     output_to_excel(level_workshop_data, model_workshop_data)
 
 

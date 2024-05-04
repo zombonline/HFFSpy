@@ -79,12 +79,10 @@ def write_to_excel(start_date, end_date, workshop_data):
         chineseModelProportion = chineseModels/totalModels
     except ZeroDivisionError:
         chineseModelProportion = 0
-    chineseLevelProportion = 0
     try:
         chineseLevelProportion = chineseLevels/totalLevels
     except ZeroDivisionError:
         chineseLevelProportion = 0
-    chineseProportion = 0
     try:
         chineseProportion = (chineseLevels + chineseModels)/(totalLevels + totalModels)
     except ZeroDivisionError:
