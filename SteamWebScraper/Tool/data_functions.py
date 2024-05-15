@@ -120,24 +120,18 @@ def create_workshop_item(item_id, driver):
     date_posted = get_item_date_posted(workshop_item)
     tags = get_item_tags(workshop_item)
     item_type = get_item_type_from_tags(tags)
+    rating = "N/A"
+    comment_count = "N/A"
     if(item_type == "Level"):
         if(get_setting_value("ratings_levels") == 1):
             rating = get_item_rating(workshop_item, driver)
-        else:
-            rating = "N/A"
         if(get_setting_value("comments_levels") == 1):
             comment_count = get_item_comment_count(workshop_item, driver)
-        else:
-            comment_count = "N/A"
     if(item_type == "Model"):
         if(get_setting_value("ratings_models") == 1):
             rating = get_item_rating(workshop_item, driver)
-        else:
-            rating = "N/A"
         if(get_setting_value("comments_models") == 1):
             comment_count = get_item_comment_count(workshop_item, driver)
-        else:
-            comment_count = "N/A"
     creator_status = get_item_creator_status(creator_id)
     return WorkshopItem(title, creator_id, creator_name, country, detected_language, tus, rating, comment_count, date_posted, tags, item_type, creator_status)
 
@@ -212,9 +206,9 @@ def get_item_rating(workshop_item, driver):
     try:
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "workshopAdminStatsBarPercent")))
         rating = driver.find_element(By.CLASS_NAME, "workshopAdminStatsBarPercent").text
-        print(rating)
     except TimeoutException:
         rating = "N/A"
+    return rating
 
 def get_item_comment_count(workshop_item, driver):
     wait = WebDriverWait(driver, 10)
@@ -226,7 +220,7 @@ def get_item_comment_count(workshop_item, driver):
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "comments")))
         comment_count = driver.find_element(By.CLASS_NAME, "comments").text.split('Comments')[1]
     except TimeoutException:
-        comment_count = "0"
+        comment_count = "N/A"
     return comment_count
 
 def get_item_date_posted(workshop_item):

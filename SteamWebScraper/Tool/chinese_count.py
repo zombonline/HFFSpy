@@ -18,6 +18,8 @@ from enum import Enum
 
 import data_functions
 
+other_asian_language_codes = ['id', 'ja', 'ko', 'th', 'tl', 'vi']
+
 def get_workshop_link(start_date, end_date):
     link = f"https://steamcommunity.com/workshop/browse/?appid=477160&searchtext=&childpublishedfileid=0&browsesort=mostrecent&section=readytouseitems&created_date_range_filter_start={start_date}&created_date_range_filter_end={end_date}&updated_date_range_filter_start=0&updated_date_range_filter_end=0&p=1"
     return link
@@ -42,6 +44,8 @@ def write_to_excel(start_date, end_date, workshop_data):
 
     chineseLevels = 0
     chineseModels = 0
+    otherAsianLevels = 0
+    otherAsianModels = 0
     totalLevels = 0
     totalModels = 0
     for(i, item) in enumerate(workshop_data):
@@ -51,55 +55,66 @@ def write_to_excel(start_date, end_date, workshop_data):
         worksheet.write(i+1, 3, item.item_type)
         worksheet.write(i+1, 4, item.country)
         worksheet.write(i+1, 5, item.language)
-        if item.language == 'zh-cn':
+        if 'zh' in item.language:
             if item.item_type == 'Level':
                 chineseLevels += 1
             elif item.item_type == 'Model':
                 chineseModels += 1
+        elif item.language in other_asian_language_codes:
+            if item.item_type == 'Level':
+                otherAsianLevels += 1
+            elif item.item_type == 'Model':
+                otherAsianModels += 1
         if item.item_type == 'Level':
             totalLevels += 1
         elif item.item_type == 'Model':
             totalModels += 1
     worksheet.write('H2', 'Models')
-    worksheet.write('H3', 'Total Entries')
-    worksheet.write('H4', 'Chinese Entries')
-    worksheet.write('H5', 'Chinese Proportion')
+    worksheet.write('H3', 'Chinese Entries')
+    worksheet.write('H4', 'Other Asian Entries')
+    worksheet.write('H5', 'Non-Asian Entries')
 
     worksheet.write('H7', 'Levels')
-    worksheet.write('H8', 'Total Entries')
-    worksheet.write('H9', 'Chinese Entries')
-    worksheet.write('H10', 'Chinese Proportion')
+    worksheet.write('H8', 'Chinese Entries')
+    worksheet.write('H9', 'Other Asian Entries')
+    worksheet.write('H10', 'Non-Asian Entries')
 
     worksheet.write('H12', 'Total')
-    worksheet.write('H13', 'Total Entries')
-    worksheet.write('H14', 'Chinese Entries')
-    worksheet.write('H15', 'Chinese Proportion')
-    
-    try:
-        chineseModelProportion = chineseModels/totalModels
-    except ZeroDivisionError:
-        chineseModelProportion = 0
-    try:
-        chineseLevelProportion = chineseLevels/totalLevels
-    except ZeroDivisionError:
-        chineseLevelProportion = 0
-    try:
-        chineseProportion = (chineseLevels + chineseModels)/(totalLevels + totalModels)
-    except ZeroDivisionError:
-        chineseProportion = 0
+    worksheet.write('H13', 'Chinese Entries')
+    worksheet.write('H14', 'Other Asian Entries')
+    worksheet.write('H15', 'Non-Asian Entries')
+    def percentage(part, whole):
+        try:
+            return part/whole
+        except ZeroDivisionError:
+            return 0
 
-    worksheet.write('I3', totalModels)
-    worksheet.write('I4', chineseModels)
-    worksheet.write('I5', f"{chineseModelProportion:.2%}")
+    worksheet.write('I2', totalModels)
+    worksheet.write('I3', f"{chineseModels}")
+    worksheet.write('J3', f"{percentage(chineseModels, totalModels):.2%}")
+    worksheet.write('I4', f"{otherAsianModels}")
+    worksheet.write('J4', f"{percentage(otherAsianModels, totalModels):.2%}")
+    nonAsianModels = totalModels - chineseModels - otherAsianModels
+    worksheet.write('I5', f"{nonAsianModels}")
+    worksheet.write('J5', f"{percentage(nonAsianModels, totalModels):.2%}")
 
-    worksheet.write('I8', totalLevels)
-    worksheet.write('I9', chineseLevels)
-    worksheet.write('I10', f"{chineseLevelProportion:.2%}")
+    worksheet.write('I7', totalLevels)
+    worksheet.write('I8', f"{chineseModels}")
+    worksheet.write('J8', f"{percentage(chineseLevels, totalLevels):.2%}")
+    worksheet.write('I9', f"{otherAsianLevels}")
+    worksheet.write('J9', f"{percentage(otherAsianLevels, totalLevels):.2%}")
+    nonAsianLevels = totalLevels - chineseLevels - otherAsianLevels
+    worksheet.write('I10', f"{nonAsianLevels}")
+    worksheet.write('J10', f"{percentage(nonAsianLevels/totalLevels):.2%}")
 
-    worksheet.write('I13', totalLevels + totalModels)
-    worksheet.write('I14', chineseLevels + chineseModels)
-    worksheet.write('I15', f"{chineseProportion:.2%}")
-
+    worksheet.write('I12', totalLevels + totalModels)
+    worksheet.write('I13', f"{chineseLevels + chineseModels}")
+    worksheet.write('J13', f"{percentage(chineseLevels + chineseModels, totalLevels + totalModels):.2%}")
+    worksheet.write('I14', f"{otherAsianLevels + otherAsianModels}")    
+    worksheet.write('J14', f"{:.2%}")
+    nonAsianEntries = nonAsianLevels + nonAsianModels
+    worksheet.write('I15', f"{nonAsianEntries}")
+    worksheet.write('J15', f"{nonAsianEntries/(totalLevels + totalModels):.2%}")
 
     workbook.close()
 
