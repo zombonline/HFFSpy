@@ -232,6 +232,7 @@ def set_up_settings_page():
     apply_all_settings_button = ctk.CTkButton(settings_canvas, text="Apply All Settings", command=lambda: apply_all_settings())
     apply_all_settings_button.pack()
 def set_up_creator_page():
+    current_status = "signed"
     # Create the creator frame
     creator_frame = ctk.CTkFrame(main_frame)
     creator_frame.pack(expand=True, fill="both")
@@ -241,40 +242,60 @@ def set_up_creator_page():
     # Create the title
     title_label = ctk.CTkLabel(creator_canvas, text="Creator", text_color='black', font=("Arial", 24))
     title_label.pack()
-    # Read the crator_status txt file
-    creator_status_file = open("creator_status.txt", "r")
-    creator_status_lines = creator_status_file.readlines()
-    creator_status_file.close()
+     # Create the tab buttons frame
+    tab_buttons_frame = ctk.CTkFrame(creator_canvas)
+    tab_buttons_frame.pack()
+    def populate_creator_status_listbox(status):
+        current_status = status
+        signed_button.configure(border_width=0)
+        unsigned_button.configure(border_width=0)
+        planning_to_contact_button.configure(border_width=0)
+        if status == "signed":
+            signed_button.configure(border_width=4)
+        elif status == "contacted":
+            unsigned_button.configure(border_width=4)
+        elif status == "planned":
+            planning_to_contact_button.configure(border_width=4)
+        creator_status_listbox.delete(0, "end")
+        with open(f"creator_status_{status}.txt", "r") as file:
+            lines = file.readlines()
+            for line in lines:
+                creator_status_listbox.insert("end", line)
+    #Create the 'Signed' Button
+    signed_button = ctk.CTkButton(tab_buttons_frame, text="Signed", border_color="white", command=lambda: populate_creator_status_listbox("signed"))
+    signed_button.grid(row=0, column=0, padx=10)
+    #Create the 'Contacted' Button
+    unsigned_button = ctk.CTkButton(tab_buttons_frame, text="Contacted", border_color="white", command=lambda: populate_creator_status_listbox("contacted"))
+    unsigned_button.grid(row=0, column=1, padx=10)
+    #Create the 'Planning to contact' Button
+    planning_to_contact_button = ctk.CTkButton(tab_buttons_frame, text="Planning to contact", border_color="white", command=lambda: populate_creator_status_listbox("planned"))
+    planning_to_contact_button.grid(row=0, column=2, padx=10)
     # Create the creator status listbox
     creator_status_listbox = tk.Listbox(creator_canvas)
     creator_status_listbox.pack()
-    for line in creator_status_lines:
-        creator = line.split(":")[0]
-        creator_status_listbox.insert("end", creator)
+    # Populate the listbox with the 'signed' creators
+    populate_creator_status_listbox("signed")
     # Create the 'Add creator' input
     creator_input = ctk.CTkEntry(creator_canvas, text_color='black')
     creator_input.pack()
-    #Create the 'Add as signed_creator' button
-    def add_as_signed_creator_button_click():
-        with open("creator_status.txt", "a") as creator_status_file:
-            creator_status_file.write(creator_input.get() + ":signed_creator\n")
+    # Create the 'Add creator' button
+    def add_creator_button_click():
         creator_status_listbox.insert("end", creator_input.get())
-    add_as_signed_creator_button = ctk.CTkButton(creator_canvas, text="Add as signed creator", command=lambda: add_as_signed_creator_button_click())
-    add_as_signed_creator_button.pack()
-    #Create the 'Add as contacted creator' button
-    def add_as_contacted_creator_button_click():
-        with open("creator_status.txt", "a") as creator_status_file:
-            creator_status_file.write(creator_input.get() + ":contacted_creator\n")
-        creator_status_listbox.insert("end", creator_input.get())
-    add_as_contacted_creator_button = ctk.CTkButton(creator_canvas, text="Add as contacted creator", command=lambda: add_as_contacted_creator_button_click())
-    add_as_contacted_creator_button.pack()
-    #Create the 'Add as pending contact creator' button
-    def add_as_pending_contact_creator_button_click():
-        with open("creator_status.txt", "a") as creator_status_file:
-            creator_status_file.write(creator_input.get() + ":pending_contact_creator\n")
-        creator_status_listbox.insert("end", creator_input.get())
-    add_as_pending_contact_creator_button = ctk.CTkButton(creator_canvas, text="Add as pending contact creator", command=lambda: add_as_pending_contact_creator_button_click())
-    add_as_pending_contact_creator_button.pack()
+        with open(f"creator_status_{current_status}.txt", "a") as file:
+            file.write("\n" + creator_input.get())
+        populate_creator_status_listbox(current_status)
+    add_creator_button = ctk.CTkButton(creator_canvas, text="Add Creator", command=lambda: add_creator_button_click())
+    add_creator_button.pack()
+    # Create the 'Remove creator' button
+    def remove_creator_button_click():
+        creator_status_listbox.delete(creator_status_listbox.curselection())
+        with open(f"creator_status_{current_status}.txt", "w") as file:
+            for i in range(creator_status_listbox.size()):
+                file.write(creator_status_listbox.get(i))
+        populate_creator_status_listbox(current_status)
+    remove_creator_button = ctk.CTkButton(creator_canvas, text="Remove Creator", command=lambda: remove_creator_button_click())
+    remove_creator_button.pack()
+
     
     # Create the back button
     back_button = ctk.CTkButton(creator_canvas, text="Back", command=lambda: load_page("Home"))
