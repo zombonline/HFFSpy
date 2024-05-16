@@ -111,7 +111,7 @@ def write_to_excel(start_date, end_date, workshop_data):
     worksheet.write('I13', f"{chineseLevels + chineseModels}")
     worksheet.write('J13', f"{percentage(chineseLevels + chineseModels, totalLevels + totalModels):.2%}")
     worksheet.write('I14', f"{otherAsianLevels + otherAsianModels}")    
-    worksheet.write('J14', f"{:.2%}")
+    worksheet.write('J14', f"{percentage(otherAsianLevels):.2%}")
     nonAsianEntries = nonAsianLevels + nonAsianModels
     worksheet.write('I15', f"{nonAsianEntries}")
     worksheet.write('J15', f"{nonAsianEntries/(totalLevels + totalModels):.2%}")
