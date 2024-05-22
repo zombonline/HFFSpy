@@ -124,13 +124,6 @@ def get_item_and_user_data(item_id):
     user = steam.users.get_user_details(data['response']['publishedfiledetails'][0]['creator'])
     return workShopItem, user
 
-def create_workshop_items_array(item_ids):
-    item_objects = []
-    for item_id in item_ids:
-        item_object = create_workshop_item(item_id)
-        item_objects.append(item_object)
-    return item_objects
-
 def create_workshop_item(item_id):
     workshop_item, user = get_item_and_user_data(item_id)
     title = get_item_title(workshop_item)
@@ -284,13 +277,6 @@ def get_top_100_appIDs_steamDB():
         appID = game.get_attribute('data-appid')
         listOfAppIDS.append(appID)
     return listOfAppIDS
-
-def create_game_items_array(listOfAppIDS):
-    games = []
-    for appID in listOfAppIDS:
-        game = create_game_item(appID)
-        games.append(game)
-    return games
 
 def create_game_item(gameAppID):
     gameName = steam.apps.get_app_details(gameAppID)[gameAppID]['data']['name']

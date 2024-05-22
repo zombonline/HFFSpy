@@ -2,7 +2,8 @@ from datetime import datetime
 import xlsxwriter
 import os
 import main_functions
-
+import tkinter as tk
+import customtkinter as ctk
 other_asian_language_codes = ['id', 'ja', 'ko', 'th', 'tl', 'vi']
 
 def get_workshop_link(start_date, end_date):
@@ -98,8 +99,18 @@ def output_to_excel(start_date, end_date, workshop_data):
     workbook.close() 
     os.startfile(f'UGCChineseSpeakingCount{start_date.strftime("%m-%d-%Y")}_to_{end_date.strftime("%m-%d-%Y")}.xlsx')
 
-def scan(start_date, end_date):
+def scan(start_date, end_date, footer_label):
     link = get_workshop_link(start_date, end_date)
+    footer_label.pack()
+    footer_label.configure(text="Loading workshop page...")
     main_functions.driver.get(link)
-    workshop_data = main_functions.create_workshop_items_array(main_functions.get_item_ids())
+    footer_label.configure(text="Getting item IDs...")
+    item_ids = main_functions.get_item_ids()
+    footer_label.configure(text="Creating workshop data...")
+    workshop_data = []
+    for i in range(len(item_ids)):
+        footer_label.configure(text=f"Gathering workshop data for item {i+1} of {len(item_ids)}")
+        workshop_data.append(main_functions.create_workshop_item(item_ids[i]))
+    footer_label.configure(text="Outputting to Excel...")
     output_to_excel(start_date, end_date, workshop_data)
+    footer_label.configure(text="")
