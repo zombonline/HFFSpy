@@ -15,14 +15,23 @@ def set_up_header(account_name):
     for widget in header_frame.winfo_children():
         widget.destroy()
 # Create the header canvas
-    header_canvas = ctk.CTkCanvas(header_frame, height=50, bg='lightblue')
+    header_canvas = ctk.CTkCanvas(header_frame, height=65, bg='orange')
     header_canvas.pack(expand=False, fill="both")
 # Create the header label
     if account_name:
-        header_label = ctk.CTkLabel(header_canvas, text="Logged in as: " + account_name, text_color='black', font=("Arial", 24))
+        header_label = ctk.CTkLabel(header_canvas, text="Logged in as: " + account_name, text_color='black', font=("Arial", 18))
     else:
-        header_label = ctk.CTkLabel(header_canvas, text="Not logged in", text_color='black', font=("Arial", 24))
+        header_label = ctk.CTkLabel(header_canvas, text="Not logged in", text_color='black', font=("Arial", 18))
     header_label.pack()
+def set_up_footer():
+    global footer_label
+    for widget in footer_frame.winfo_children():
+        widget.destroy()
+    # Create the footer canvas
+    footer_canvas = ctk.CTkCanvas(footer_frame, height=0, bg='orange')
+    footer_canvas.pack(expand=False, fill="both")
+    # Create the footer label
+    footer_label = ctk.CTkLabel(footer_canvas, text="", text_color='black', font=("Arial", 18))
 def set_up_home_page():
     # Create the home frame
     home_frame = ctk.CTkFrame(main_frame)
@@ -50,7 +59,6 @@ def set_up_home_page():
     steam_login_button = ctk.CTkButton(home_canvas, text="Steam Login", command=lambda: load_page("Steam Login"))
     steam_login_button.pack()
 def set_up_scanning_page():
-    
     # Create the loading frame
     loading_frame = ctk.CTkFrame(main_frame)
     loading_frame.pack(expand=True, fill="both")
@@ -64,9 +72,10 @@ def set_up_scanning_page():
     progress_bar = ctk.CTkProgressBar(loading_canvas, width=300, height=20,mode='indeterminate')
     progress_bar.pack()
     progress_bar.start()
-    while active_thread.isAlive():
+    while active_thread.is_alive():
         progress_bar.update()
     progress_bar.stop()
+    loading_label.configure(text="Scanning complete")
     # Create the back button
     back_button = ctk.CTkButton(loading_canvas, text="Back", command=lambda: load_page("Home"))
     back_button.pack()
@@ -87,7 +96,8 @@ def set_up_total_UGC_count_page():
     # Create the scan total UGC count button
     def scan_total_UGC_count_button_click():
         global active_thread
-        active_thread = threading.Thread(target=gen_most_played_workshop_games.scan, args=())
+        global footer_label
+        active_thread = threading.Thread(target=gen_most_played_workshop_games.scan, args=(footer_label,))
         active_thread.start()
         load_page("Scanning")
         app.update()
@@ -122,7 +132,8 @@ def set_up_total_chinese_count_page():
     # Create the 'scrape page' button
     def scan_total_chinese_count_button_click(start_date, end_date):
         global active_thread
-        active_thread = threading.Thread(target=gen_total_items_in_date_range.scan, args=(get_timestamp(start_date), get_timestamp(end_date, True)))
+        global footer_label
+        active_thread = threading.Thread(target=gen_total_items_in_date_range.scan, args=(get_timestamp(start_date), get_timestamp(end_date, True), footer_label))
         active_thread.start()
         load_page("Scanning")
         app.update()
@@ -168,7 +179,8 @@ def set_up_top_ugc_of_workshop_month_page():
     # Create the scan top ugc of workshop month button
     def scan_top_ugc_of_workshop_month_button_click(start_date, end_date, amount_of_items):
         global active_thread
-        active_thread = threading.Thread(target=gen_top_item_in_date_range.scan, args=(get_timestamp(start_date), get_timestamp(end_date, True), amount_of_items))
+        global footer_label
+        active_thread = threading.Thread(target=gen_top_item_in_date_range.scan, args=(get_timestamp(start_date), get_timestamp(end_date, True), amount_of_items, footer_label))
         active_thread.start()
         load_page("Scanning")
         app.update()
@@ -416,14 +428,19 @@ def get_timestamp(date_string, end_of_day=False):
 
 app = tk.Tk()
 app.title("Curve Tool")
-app.geometry("400x400")
+app.geometry("600x400")
 
 # Create the header frame
-header_frame = ctk.CTkFrame(app, height=50)
+header_frame = ctk.CTkFrame(app, height=65)
 header_frame.pack(expand=False, fill="both")
 # Create the main frame
 main_frame = ctk.CTkFrame(app)
 main_frame.pack(expand=True, fill="both")
+# Create the footer frame
+footer_frame = ctk.CTkFrame(app, height=0)
+footer_frame.pack(expand=False, fill="both")
+# Create the footer label
+footer_label = None
 
 #region input elements
 date_range_start_input = tk.StringVar()
@@ -439,6 +456,7 @@ active_thread = None
 current_page = "Home"
 load_page(current_page)
 set_up_header(False)
+set_up_footer()
 load_page("Chrome Driver")
 if(main_functions.start_driver() == False):
     print("Error: Failed to start driver")

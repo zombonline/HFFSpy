@@ -17,7 +17,15 @@ def output_to_excel(games):
     workbook.close()
     os.startfile('UGCOfMajorGames.xlsx')
 
-def scan():
-    appIDs = main_functions.get_top_100_games_via_steamDB() 
-    games = main_functions.create_game_items(appIDs)
+def scan(footer_label):
+    footer_label.pack()
+    footer_label.configure(text="Getting current top 100 games from SteamDB...")
+    appIDs = main_functions.get_top_100_appIDs_steamDB() 
+    footer_label.configure(text="Creating game items...")
+    games = []
+    for i in range(len(appIDs)):
+        footer_label.configure(text=f"Gathering workshop data for game {i+1} of {len(appIDs)}")
+        games.append(main_functions.create_game_item(appIDs[i]))    
+    footer_label.configure(text="Outputting to Excel...")
     output_to_excel(games)
+    footer_label.configure(text="")
