@@ -42,22 +42,28 @@ def set_up_home_page():
     # Create the title
     title_label = ctk.CTkLabel(home_canvas, text="Home", text_color='black', font=("Arial", 24))
     title_label.pack()
+    # Create the "Scans" label
+    scans_label = ctk.CTkLabel(home_canvas, text="Scans", text_color='black', font=("Arial", 18))
+    scans_label.pack(pady=10)
+    #Navigation Buttons
+    total_UGC_count_button = ctk.CTkButton(home_canvas, text="Top 100 Games (UGC Count)", command=lambda: load_page("Total UGC Count"))   
+    total_UGC_count_button.pack(pady=5)
+    total_chinese_count_button = ctk.CTkButton(home_canvas, text="All HFF Workshop Items", command=lambda: load_page("Total Chinese Count"))
+    total_chinese_count_button.pack(pady=5)
+    top_ugc_of_workshop_month_button = ctk.CTkButton(home_canvas, text="Top Rated HFF Workshop items", command=lambda: load_page("Top Monthly Workshop Items"))
+    top_ugc_of_workshop_month_button.pack(pady=5)
+    # Create the "Other" label
+    other_label = ctk.CTkLabel(home_canvas, text="Other", text_color='black', font=("Arial", 18))
+    other_label.pack(pady=10)
     #Create the 'Download Chromdriver here' button
     download_chromedriver_button = ctk.CTkButton(home_canvas, text="Download Chromedriver here", command=lambda: os.system("start https://googlechromelabs.github.io/chrome-for-testing/"))
-    download_chromedriver_button.pack()
-    #Navigation Buttons
-    total_UGC_count_button = ctk.CTkButton(home_canvas, text="Total UGC Count", command=lambda: load_page("Total UGC Count"))   
-    total_UGC_count_button.pack()
-    total_chinese_count_button = ctk.CTkButton(home_canvas, text="Total Chinese Count", command=lambda: load_page("Total Chinese Count"))
-    total_chinese_count_button.pack()
-    top_ugc_of_workshop_month_button = ctk.CTkButton(home_canvas, text="Top UGC of Workshop Month", command=lambda: load_page("Top Monthly Workshop Items"))
-    top_ugc_of_workshop_month_button.pack()
+    download_chromedriver_button.pack(pady=5)
     settings_button = ctk.CTkButton(home_canvas, text="Settings", command=lambda: load_page("Settings"))
-    settings_button.pack()
+    settings_button.pack(pady=5)
     creator_button = ctk.CTkButton(home_canvas, text="Creator", command=lambda: load_page("Creator"))
-    creator_button.pack()
+    creator_button.pack(pady=5)
     steam_login_button = ctk.CTkButton(home_canvas, text="Steam Login", command=lambda: load_page("Steam Login"))
-    steam_login_button.pack()
+    steam_login_button.pack(pady=5)
 def set_up_scanning_page():
     # Create the loading frame
     loading_frame = ctk.CTkFrame(main_frame)
@@ -79,8 +85,7 @@ def set_up_scanning_page():
     # Create the back button
     back_button = ctk.CTkButton(loading_canvas, text="Back", command=lambda: load_page("Home"))
     back_button.pack()
-    
-def set_up_total_UGC_count_page():
+def set_up_top_100_workshops_page():
     # Create the total UGC count frame
     total_UGC_count_frame = ctk.CTkFrame(main_frame)
     total_UGC_count_frame.pack(expand=True, fill="both")
@@ -88,11 +93,14 @@ def set_up_total_UGC_count_page():
     total_UGC_count_canvas = ctk.CTkCanvas(total_UGC_count_frame)
     total_UGC_count_canvas.pack(expand=True, fill="both")
     # Create the title
-    title_label = ctk.CTkLabel(total_UGC_count_canvas, text="Total UGC Count", text_color='black', font=("Arial", 24))
+    title_label = ctk.CTkLabel(total_UGC_count_canvas, text="Top 100 Games (UGC Count)", text_color='black', font=("Arial", 24))
     title_label.pack()
+    # Create the info label
+    info_label = ctk.CTkLabel(total_UGC_count_canvas, text="This will scan the current top 100 most played workshop games and display the total UGC count.", wraplength = 200, text_color='black')
+    info_label.pack()
     # Create the back button
     back_button = ctk.CTkButton(total_UGC_count_canvas, text="Back", command=lambda: load_page("Home"))
-    back_button.pack()
+    back_button.pack(pady=10)
     # Create the scan total UGC count button
     def scan_total_UGC_count_button_click():
         global active_thread
@@ -111,21 +119,24 @@ def set_up_total_chinese_count_page():
     total_chinese_count_canvas = ctk.CTkCanvas(total_chinese_count_frame)
     total_chinese_count_canvas.pack(expand=True, fill="both")
     # Create the title
-    title_label = ctk.CTkLabel(total_chinese_count_canvas, text="Total Chinese Count", text_color='black', font=("Arial", 24))
+    title_label = ctk.CTkLabel(total_chinese_count_canvas, text="All HFF Workshop Items", text_color='black', font=("Arial", 24))
     title_label.pack(pady=10)
+    # Create the info label
+    info_label = ctk.CTkLabel(total_chinese_count_canvas, text="This will scan all items on the workshop within the provided date range. They will be listed chronologically.", wraplength = 200, text_color='black')
+    info_label.pack()
     # Create the back button
     back_button = ctk.CTkButton(total_chinese_count_canvas, text="Back", command=lambda: load_page("Home"))
-    back_button.pack()    
+    back_button.pack(pady=10)    
     # Create the date range frame
     date_range_frame = ctk.CTkFrame(total_chinese_count_canvas)
-    date_range_frame.pack()
+    date_range_frame.pack(pady=10)
     # Create the date range start input
-    date_range_start_label = ctk.CTkLabel(date_range_frame, text="Date Range Start", text_color='black')
+    date_range_start_label = ctk.CTkLabel(date_range_frame, text="From:", text_color='white')
     date_range_start_label.grid(row=0, column=0, padx=10)
     date_range_start = DateEntry(date_range_frame, textvariable=date_range_start_input, date_pattern="yyyy-mm-dd")
     date_range_start.grid(row=1, column=0, padx=10, pady=10)
     # Create the date range end input
-    date_range_end_label = ctk.CTkLabel(date_range_frame, text="Date Range End", text_color='black')
+    date_range_end_label = ctk.CTkLabel(date_range_frame, text="Until:", text_color='white')
     date_range_end_label.grid(row=0, column=1, padx=10)
     date_range_end = DateEntry(date_range_frame, textvariable=date_range_end_input, date_pattern="yyyy-mm-dd")
     date_range_end.grid(row=1, column=1, padx=10, pady=10)
@@ -138,7 +149,7 @@ def set_up_total_chinese_count_page():
         load_page("Scanning")
         app.update()
     scrape_page_button = ctk.CTkButton(total_chinese_count_canvas, text="Scan", command=lambda: scan_total_chinese_count_button_click(date_range_start_input.get(), date_range_end_input.get()))
-    scrape_page_button.pack()
+    scrape_page_button.pack(pady=10)
 def set_up_top_ugc_of_workshop_month_page():
     #This search may require a user to be logged in depending on settings so a check is made here.
     #If ratings are enabled and user is not logged in, the user is redirected to the steam login page.
@@ -153,29 +164,33 @@ def set_up_top_ugc_of_workshop_month_page():
     top_monthly_workshop_items_canvas = ctk.CTkCanvas(top_monthly_workshop_items_frame)
     top_monthly_workshop_items_canvas.pack(expand=True, fill="both")
     # Create the title
-    title_label = ctk.CTkLabel(top_monthly_workshop_items_canvas, text="Top Monthly Workshop Items", text_color='black', font=("Arial", 24))
+    title_label = ctk.CTkLabel(top_monthly_workshop_items_canvas, text="Top Rated HFF Workshop items", text_color='black', font=("Arial", 24))
     title_label.pack()
+    # Create the info label
+    info_label = ctk.CTkLabel(top_monthly_workshop_items_canvas, text="This will scan the specified amount of items on the workshop within the provided date range. They will be listed by 'Most Popular' on steam.", wraplength = 200, text_color='black')
+    info_label.pack()
+
     # Create the back button
     back_button = ctk.CTkButton(top_monthly_workshop_items_canvas, text="Back", command=lambda: load_page("Home"))
-    back_button.pack()
+    back_button.pack(pady=10)
     # Create the date range frame
     date_range_frame = ctk.CTkFrame(top_monthly_workshop_items_canvas)
-    date_range_frame.pack()
+    date_range_frame.pack(pady=10)
     # Create the date range start input
-    date_range_start_label = ctk.CTkLabel(date_range_frame, text="Date Range Start", text_color='black')
+    date_range_start_label = ctk.CTkLabel(date_range_frame, text="From:", text_color='white')
     date_range_start_label.grid(row=0, column=0, padx=10)
     date_range_start = DateEntry(date_range_frame, textvariable=date_range_start_input, date_pattern="yyyy-mm-dd")
     date_range_start.grid(row=1, column=0, padx=10, pady=10)
     # Create the date range end input
-    date_range_end_label = ctk.CTkLabel(date_range_frame, text="Date Range End", text_color='black')
-    date_range_end_label.grid(row=0, column=1, padx=10)
+    date_range_end_label = ctk.CTkLabel(date_range_frame, text="Until:", text_color='white')
+    date_range_end_label.grid(row=0, column=2, padx=10)
     date_range_end = DateEntry(date_range_frame, textvariable=date_range_end_input, date_pattern="yyyy-mm-dd")
-    date_range_end.grid(row=1, column=1, padx=10, pady=10)
+    date_range_end.grid(row=1, column=2, padx=10, pady=10)
     # Create the amount of items to grab input
-    amount_of_items_label = ctk.CTkLabel(date_range_frame, text="Amount of Items to Grab", text_color='black')
-    amount_of_items_label.grid(row=3, column=0, padx=10)
+    amount_of_items_label = ctk.CTkLabel(date_range_frame, text="Amount of Items to Grab", text_color='white')
+    amount_of_items_label.grid(row=3, column=1, padx=10)
     amount_of_items_input = ctk.CTkEntry(date_range_frame)
-    amount_of_items_input.grid(row=4, column=0, padx=10, pady=10)
+    amount_of_items_input.grid(row=4, column=1, padx=10, pady=10)
     # Create the scan top ugc of workshop month button
     def scan_top_ugc_of_workshop_month_button_click(start_date, end_date, amount_of_items):
         global active_thread
@@ -399,7 +414,7 @@ def load_page(page):
     if page == "Home":
         set_up_home_page()
     elif page == "Total UGC Count":
-        set_up_total_UGC_count_page()
+        set_up_top_100_workshops_page()
     elif page == "Total Chinese Count":
         set_up_total_chinese_count_page()
     elif page == "Top Monthly Workshop Items":
@@ -428,7 +443,8 @@ def get_timestamp(date_string, end_of_day=False):
 
 app = tk.Tk()
 app.title("Curve Tool")
-app.geometry("600x400")
+app.geometry("600x500")
+app.minsize(600, 500)
 
 # Create the header frame
 header_frame = ctk.CTkFrame(app, height=65)
@@ -457,8 +473,8 @@ current_page = "Home"
 load_page(current_page)
 set_up_header(False)
 set_up_footer()
-load_page("Chrome Driver")
 if(main_functions.start_driver() == False):
-    print("Error: Failed to start driver")
-    app.quit()
+    load_page("Chrome Driver")
+main_functions.check_for_creator_status_file()
+main_functions.check_for_settings_file()
 app.mainloop()
