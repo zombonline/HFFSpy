@@ -93,25 +93,6 @@ def get_item_ids(amount = None):
         maxItemsFound = len(driver.find_elements(By.CSS_SELECTOR, 'div.workshopItem')) == 0
     return item_ids[:amount]
 
-class CreatorStatus(Enum):
-    signed_creator = 1
-    contacted_creator = 2
-    pending_contact_creator = 3
-    standard_creator = 4
-
-def get_item_creator_status(creator_id):
-    try:
-        this_dir = os.path.dirname(os.path.abspath(__file__))
-        file = open(f"{this_dir}/CreatorStatus.txt", "r")
-        for line in file:
-            if creator_id in line:
-                try:
-                    return CreatorStatus(int(line.split('- ')[1]))
-                except:
-                    return CreatorStatus(4)
-    except:
-        return CreatorStatus(4)
-
 def get_item_and_user_data(item_id):
     params = {
             'key': KEY,
@@ -147,7 +128,7 @@ def create_workshop_item(item_id):
             rating = get_item_rating(workshop_item)
         if(get_setting_value("comments_models") == 1):
             comment_count = get_item_comment_count(workshop_item)
-    creator_status = get_item_creator_status(creator_id)
+    creator_status = "N/A"
     return WorkshopItem(title, creator_id, creator_name, country, detected_language, tus, rating, comment_count, date_posted, tags, item_type, creator_status)
 
 def get_item_title(workshop_item):
@@ -162,6 +143,29 @@ def get_item_creator_name(user):
     else:
         return "N/A"
 
+def get_creator_contribution_count(creator_id):
+    driver.get(f"https://steamcommunity.com/profiles/{creator_id}/myworkshopfiles/?appid=477160")
+    try:
+        wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, 'workshopBrowsePagingInfo')) > 0)
+    except TimeoutException:
+        print("Could not find expected number of items.")
+        return 0
+    contribution_count_string = driver.find_element(By.CLASS_NAME, 'workshopBrowsePagingInfo').text
+    contribution_count_string = int(contribution_count_string.split('of ')[1].split(' entries')[0].replace(',', ''))
+    return contribution_count_string
+
+def get_creator_followers_count(creator_id):
+    if driver.current_url != f"https://steamcommunity.com/profiles/{creator_id}/myworkshopfiles/?appid=477160":
+        driver.get(f"https://steamcommunity.com/profiles/{creator_id}/myworkshopfiles/?appid=477160")
+    try:
+        wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, 'followStat')) > 0)
+    except TimeoutException:
+        print("Could not find expected number of followers.")
+        return 0
+    followers_count_string = driver.find_element(By.CLASS_NAME, 'followStat').text
+    followers_count = int(followers_count_string.replace(',', ''))
+    return followers_count
+
 def get_item_creator_country(user):
     if('loccountrycode' in user['player']):
         return user['player']['loccountrycode']
@@ -169,6 +173,7 @@ def get_item_creator_country(user):
         return "N/A"
 
 def get_item_creator_language(user, workshop_item):
+    other_asian_language_codes = ['id', 'ja', 'ko', 'th', 'tl', 'vi']
     #chinese override, if the user's country is already display as China, then the language is Chinese
     if(get_item_creator_country(user) == 'CN'):
         return 'zh-cn'
@@ -199,12 +204,19 @@ def get_item_creator_language(user, workshop_item):
 
     #Chinese override (Example: if a player has a chinese username, but is using english in title/description of the item,
     #the language might be detected as english, but we want to override that and set it to chinese)
+    #The same goes for other asian languages after the chinese override.
     if 'zh' not in detected_language:
         for string in strings:
             try:
                 if 'zh' in detect(string):
-                    detected_language = 'zh-cn'
-                    break
+                    return'zh-cn'
+            except:
+                continue
+    elif detected_language not in other_asian_language_codes:
+        for string in strings:
+            try:
+                if detect(string) in other_asian_language_codes:
+                    return detect(string)
             except:
                 continue
     return detected_language
@@ -261,7 +273,7 @@ def get_item_type_from_tags(tags):
         return "Lobby"
     else:
         return "N/A"
-
+    
 class Game:
     def __init__(self, appID, name, amountOfItems):
         self.appID = appID
@@ -389,4 +401,3 @@ def check_for_creator_status_file():
     if not os.path.exists("creator_status_signed.txt"):
         creator_status_file = open("creator_status_signed.txt", "w")
         creator_status_file.close()
-    
