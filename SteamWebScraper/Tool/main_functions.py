@@ -369,3 +369,24 @@ def check_steam_user_logged_in():
         return account_name
     except TimeoutException:
         return False
+
+def check_for_settings_file():
+    if not os.path.exists("settings.txt"):
+        setting_file = open("settings.txt", "w")
+        setting_file.write("display_browser:0\n")
+        setting_file.write("ratings_levels:0\n")
+        setting_file.write("comments_levels:0\n")
+        setting_file.write("ratings_models:0\n")
+        setting_file.write("comments_models:0\n")
+        setting_file.close()
+def check_for_creator_status_file():
+    if not os.path.exists("creator_status_contacted.txt"):
+        creator_status_file = open("creator_status_contacted.txt", "w")
+        creator_status_file.close()
+    if not os.path.exists("creator_status_pending.txt"):
+        creator_status_file = open("creator_status_pending.txt", "w")
+        creator_status_file.close()
+    if not os.path.exists("creator_status_signed.txt"):
+        creator_status_file = open("creator_status_signed.txt", "w")
+        creator_status_file.close()
+    
