@@ -45,7 +45,7 @@ def start_driver():
 
 
 class WorkshopItem:
-    def __init__(self, title, creator_id, creator_name, country, language, tus, rating, comment_count, date_posted, tags, item_type, creator_status):
+    def __init__(self, title, creator_id, creator_name, country, language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers):
         self.title = title
         self.creator_ID = creator_id
         self.creator_name = creator_name
@@ -58,6 +58,8 @@ class WorkshopItem:
         self.tags = tags
         self.item_type = item_type
         self.creator_status = creator_status
+        self.contribution_count = contribution_count
+        self.followers = followers
 
 def workshop_next_page():
     currentPageUrl = driver.current_url
@@ -129,7 +131,9 @@ def create_workshop_item(item_id):
         if(get_setting_value("comments_models") == 1):
             comment_count = get_item_comment_count(workshop_item)
     creator_status = "N/A"
-    return WorkshopItem(title, creator_id, creator_name, country, detected_language, tus, rating, comment_count, date_posted, tags, item_type, creator_status)
+    contribution_count = get_item_creator_contribution_count(creator_id)
+    followers = get_item_creator_followers_count(creator_id)
+    return WorkshopItem(title, creator_id, creator_name, country, detected_language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers)
 
 def get_item_title(workshop_item):
     return workshop_item['title']
@@ -143,7 +147,7 @@ def get_item_creator_name(user):
     else:
         return "N/A"
 
-def get_creator_contribution_count(creator_id):
+def get_item_creator_contribution_count(creator_id):
     driver.get(f"https://steamcommunity.com/profiles/{creator_id}/myworkshopfiles/?appid=477160")
     try:
         wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, 'workshopBrowsePagingInfo')) > 0)
@@ -154,7 +158,7 @@ def get_creator_contribution_count(creator_id):
     contribution_count_string = int(contribution_count_string.split('of ')[1].split(' entries')[0].replace(',', ''))
     return contribution_count_string
 
-def get_creator_followers_count(creator_id):
+def get_item_creator_followers_count(creator_id):
     if driver.current_url != f"https://steamcommunity.com/profiles/{creator_id}/myworkshopfiles/?appid=477160":
         driver.get(f"https://steamcommunity.com/profiles/{creator_id}/myworkshopfiles/?appid=477160")
     try:

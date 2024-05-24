@@ -21,6 +21,8 @@ def output_to_excel(start_date, end_date, workshop_data):
     worksheet.write('D1', 'Type')
     worksheet.write('E1', 'Country')
     worksheet.write('F1', 'Language')
+    worksheet.write('G1', 'HFF Items Made')
+    worksheet.write('H1', 'Follow Count')
 
     chineseLevels = 0
     chineseModels = 0
@@ -35,6 +37,8 @@ def output_to_excel(start_date, end_date, workshop_data):
         worksheet.write(i+1, 3, item.item_type)
         worksheet.write(i+1, 4, item.country)
         worksheet.write(i+1, 5, item.language)
+        worksheet.write(i+1, 6, item.contribution_count)
+        worksheet.write(i+1, 7, item.followers)
         if 'zh' in item.language:
             if item.item_type == 'Level':
                 chineseLevels += 1
@@ -49,52 +53,52 @@ def output_to_excel(start_date, end_date, workshop_data):
             totalLevels += 1
         elif item.item_type == 'Model':
             totalModels += 1
-    worksheet.write('H2', 'Models')
-    worksheet.write('H3', 'Chinese Entries')
-    worksheet.write('H4', 'Other Asian Entries')
-    worksheet.write('H5', 'Non-Asian Entries')
+    worksheet.write('J2', 'Models')
+    worksheet.write('J3', 'Chinese Entries')
+    worksheet.write('J4', 'Other Asian Entries')
+    worksheet.write('J5', 'Non-Asian Entries')
 
-    worksheet.write('H7', 'Levels')
-    worksheet.write('H8', 'Chinese Entries')
-    worksheet.write('H9', 'Other Asian Entries')
-    worksheet.write('H10', 'Non-Asian Entries')
+    worksheet.write('J7', 'Levels')
+    worksheet.write('J8', 'Chinese Entries')
+    worksheet.write('J9', 'Other Asian Entries')
+    worksheet.write('J10', 'Non-Asian Entries')
 
-    worksheet.write('H12', 'Total')
-    worksheet.write('H13', 'Chinese Entries')
-    worksheet.write('H14', 'Other Asian Entries')
-    worksheet.write('H15', 'Non-Asian Entries')
+    worksheet.write('J12', 'Total')
+    worksheet.write('J13', 'Chinese Entries')
+    worksheet.write('J14', 'Other Asian Entries')
+    worksheet.write('J15', 'Non-Asian Entries')
     def percentage(part, whole):
         try:
             return part/whole
         except ZeroDivisionError:
             return 0
 
-    worksheet.write('I2', totalModels)
-    worksheet.write('I3', f"{chineseModels}")
-    worksheet.write('J3', f"{percentage(chineseModels, totalModels):.2%}")
-    worksheet.write('I4', f"{otherAsianModels}")
-    worksheet.write('J4', f"{percentage(otherAsianModels, totalModels):.2%}")
+    worksheet.write('K2', totalModels)
+    worksheet.write('K3', f"{chineseModels}")
+    worksheet.write('L3', f"{percentage(chineseModels, totalModels):.2%}")
+    worksheet.write('K4', f"{otherAsianModels}")
+    worksheet.write('L4', f"{percentage(otherAsianModels, totalModels):.2%}")
     nonAsianModels = totalModels - chineseModels - otherAsianModels
-    worksheet.write('I5', f"{nonAsianModels}")
-    worksheet.write('J5', f"{percentage(nonAsianModels, totalModels):.2%}")
+    worksheet.write('K5', f"{nonAsianModels}")
+    worksheet.write('L5', f"{percentage(nonAsianModels, totalModels):.2%}")
 
-    worksheet.write('I7', totalLevels)
-    worksheet.write('I8', f"{chineseLevels}")
-    worksheet.write('J8', f"{percentage(chineseLevels, totalLevels):.2%}")
-    worksheet.write('I9', f"{otherAsianLevels}")
-    worksheet.write('J9', f"{percentage(otherAsianLevels, totalLevels):.2%}")
+    worksheet.write('K7', totalLevels)
+    worksheet.write('K8', f"{chineseLevels}")
+    worksheet.write('L8', f"{percentage(chineseLevels, totalLevels):.2%}")
+    worksheet.write('K9', f"{otherAsianLevels}")
+    worksheet.write('L9', f"{percentage(otherAsianLevels, totalLevels):.2%}")
     nonAsianLevels = totalLevels - chineseLevels - otherAsianLevels
-    worksheet.write('I10', f"{nonAsianLevels}")
-    worksheet.write('J10', f"{percentage(nonAsianLevels,totalLevels):.2%}")
+    worksheet.write('K10', f"{nonAsianLevels}")
+    worksheet.write('L10', f"{percentage(nonAsianLevels,totalLevels):.2%}")
 
-    worksheet.write('I12', totalLevels + totalModels)
-    worksheet.write('I13', f"{chineseLevels + chineseModels}")
-    worksheet.write('J13', f"{percentage(chineseLevels + chineseModels, totalLevels + totalModels):.2%}")
-    worksheet.write('I14', f"{otherAsianLevels + otherAsianModels}")    
-    worksheet.write('J14', f"{percentage(otherAsianLevels + otherAsianModels, totalLevels + totalModels):.2%}")
+    worksheet.write('K12', totalLevels + totalModels)
+    worksheet.write('K13', f"{chineseLevels + chineseModels}")
+    worksheet.write('L13', f"{percentage(chineseLevels + chineseModels, totalLevels + totalModels):.2%}")
+    worksheet.write('K14', f"{otherAsianLevels + otherAsianModels}")    
+    worksheet.write('L14', f"{percentage(otherAsianLevels + otherAsianModels, totalLevels + totalModels):.2%}")
     nonAsianEntries = nonAsianLevels + nonAsianModels
-    worksheet.write('I15', f"{nonAsianEntries}")
-    worksheet.write('J15', f"{percentage(nonAsianEntries, totalLevels + totalModels):.2%}")
+    worksheet.write('K15', f"{nonAsianEntries}")
+    worksheet.write('L15', f"{percentage(nonAsianEntries, totalLevels + totalModels):.2%}")
 
     workbook.close() 
     os.startfile(f'UGCChineseSpeakingCount{start_date.strftime("%m-%d-%Y")}_to_{end_date.strftime("%m-%d-%Y")}.xlsx')
