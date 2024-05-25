@@ -13,13 +13,40 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support import expected_conditions as EC
 from datetime import datetime
 import os
-from enum import Enum
-
 KEY = config('STEAM_API_KEY')
 steam = Steam(KEY)
 url = f"https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/"   
 driver = None
 wait = None
+signed_users = []
+contacted_users = []
+planned_users = []
+
+def populate_user_lists():
+    global signed_users, contacted_users, planned_users
+    signed_users = []
+    contacted_users = []
+    planned_users = []
+    with open("creator_status_signed.txt", "r") as creator_status_file:    
+        signed_users = [line.strip() for line in creator_status_file.readlines()]
+    with open("creator_status_contacted.txt", "r") as creator_status_file:
+        contacted_users = [line.strip() for line in creator_status_file.readlines()]
+    with open("creator_status_planned.txt", "r") as creator_status_file:
+        planned_users = [line.strip() for line in creator_status_file.readlines()]
+
+    print("signed", signed_users)
+    print("contacted",contacted_users)
+    print("planned", planned_users)
+
+def get_creator_status(creator_id):
+    if f"{creator_id}\n" in signed_users:
+        return "Signed"
+    elif f"{creator_id}\n" in contacted_users:
+        return "Contacted"
+    elif f"{creator_id}\n" in planned_users:
+        return "Pending"
+    else:
+        return None
 
 def start_driver():
     global driver
@@ -42,7 +69,6 @@ def start_driver():
     driver = webdriver.Chrome(service=webdriver_service, options=options)
     wait = WebDriverWait(driver, 10)
     return driver
-
 
 class WorkshopItem:
     def __init__(self, title, creator_id, creator_name, country, language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers):
@@ -130,7 +156,7 @@ def create_workshop_item(item_id):
             rating = get_item_rating(workshop_item)
         if(get_setting_value("comments_models") == 1):
             comment_count = get_item_comment_count(workshop_item)
-    creator_status = "N/A"
+    creator_status = get_creator_status(creator_id)
     contribution_count = get_item_creator_contribution_count(creator_id)
     followers = get_item_creator_followers_count(creator_id)
     return WorkshopItem(title, creator_id, creator_name, country, detected_language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers)
@@ -140,6 +166,12 @@ def get_item_title(workshop_item):
 
 def get_item_creator_id(workshop_item):
     return workshop_item['creator']
+
+def get_user_details(creator_id):
+    try:
+        return steam.users.get_user_details(creator_id)
+    except:
+        return None
 
 def get_item_creator_name(user):
     if('personaname' in user['player']):
@@ -399,8 +431,8 @@ def check_for_creator_status_file():
     if not os.path.exists("creator_status_contacted.txt"):
         creator_status_file = open("creator_status_contacted.txt", "w")
         creator_status_file.close()
-    if not os.path.exists("creator_status_pending.txt"):
-        creator_status_file = open("creator_status_pending.txt", "w")
+    if not os.path.exists("creator_status_planned.txt"):
+        creator_status_file = open("creator_status_planned.txt", "w")
         creator_status_file.close()
     if not os.path.exists("creator_status_signed.txt"):
         creator_status_file = open("creator_status_signed.txt", "w")
