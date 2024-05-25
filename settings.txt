@@ -2,4 +2,4 @@ comments_levels:0
 comments_models:0
 ratings_levels:0
 ratings_models:0
-display_browser:1
+display_browser:0

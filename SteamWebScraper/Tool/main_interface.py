@@ -236,7 +236,7 @@ def set_up_settings_page():
     scan_for_comments_models_checkbox = tk.Checkbutton(settings_canvas, text="Models", variable=scan_for_comments_models_var)
     scan_for_comments_models_checkbox.pack()
     # Create warning label
-    warning_label = ctk.CTkLabel(settings_canvas, text="Warning: As the python steam api does not \ntrack comment counts, this is done via the browser, \nwhich will increase scanning time significantly.", text_color='red')
+    warning_label = ctk.CTkLabel(settings_canvas, text="Warning: As the python steam api does not track comment counts, this is done via the browser, which will increase scanning time significantly.", wraplength=200, text_color='red')
     warning_label.pack()
     #Create the label "Scan for ratings"
     scan_for_ratings_label = ctk.CTkLabel(settings_canvas, text="Scan for ratings", text_color='black')
@@ -252,7 +252,7 @@ def set_up_settings_page():
     scan_for_ratings_models_checkbox = tk.Checkbutton(settings_canvas, text="Models", variable=scan_for_ratings_models_var)
     scan_for_ratings_models_checkbox.pack()
     # Create warning label
-    warning_label = ctk.CTkLabel(settings_canvas, text="Warning: Ratings are also tracked via the \nbrowser, increasing scanning time. They also require \na valid log in.", text_color='red')
+    warning_label = ctk.CTkLabel(settings_canvas, text="Warning: Ratings are also tracked via the browser, increasing scanning time. They also require a valid log in.", wraplength=200, text_color='red')
     warning_label.pack()
     # Create the apply all settings button
     def apply_all_settings():
@@ -261,7 +261,6 @@ def set_up_settings_page():
         main_functions.apply_setting_value("ratings_models", scan_for_ratings_models_var.get())
         main_functions.apply_setting_value("comments_levels", scan_for_comments_levels_var.get())
         main_functions.apply_setting_value("comments_models", scan_for_comments_models_var.get())
-
     apply_all_settings_button = ctk.CTkButton(settings_canvas, text="Apply All Settings", command=lambda: apply_all_settings())
     apply_all_settings_button.pack()
 def set_up_creator_page():
@@ -279,6 +278,7 @@ def set_up_creator_page():
     tab_buttons_frame = ctk.CTkFrame(creator_canvas)
     tab_buttons_frame.pack()
     def populate_creator_status_listbox(status):
+        global current_status 
         current_status = status
         signed_button.configure(border_width=0)
         unsigned_button.configure(border_width=0)
@@ -293,7 +293,12 @@ def set_up_creator_page():
         with open(f"creator_status_{status}.txt", "r") as file:
             lines = file.readlines()
             for line in lines:
-                creator_status_listbox.insert("end", line)
+                if line == "\n":
+                    continue
+                user_details = main_functions.get_user_details(line)
+                if user_details == None:
+                    continue
+                creator_status_listbox.insert("end", main_functions.get_item_creator_name(user_details)  + " (" + line + ")")
     #Create the 'Signed' Button
     signed_button = ctk.CTkButton(tab_buttons_frame, text="Signed", border_color="white", command=lambda: populate_creator_status_listbox("signed"))
     signed_button.grid(row=0, column=0, padx=10)
@@ -304,24 +309,37 @@ def set_up_creator_page():
     planning_to_contact_button = ctk.CTkButton(tab_buttons_frame, text="Planning to contact", border_color="white", command=lambda: populate_creator_status_listbox("planned"))
     planning_to_contact_button.grid(row=0, column=2, padx=10)
     # Create the creator status listbox
-    creator_status_listbox = tk.Listbox(creator_canvas)
+    creator_status_listbox = tk.Listbox(creator_canvas, width=50)
     creator_status_listbox.pack()
     # Populate the listbox with the 'signed' creators
     populate_creator_status_listbox("signed")
+    # Create the message label
+    message_label = ctk.CTkLabel(creator_canvas, text="", text_color='black', font=("Arial", 24))
+    message_label.pack()
     # Create the 'Add creator' input
-    creator_input = ctk.CTkEntry(creator_canvas, text_color='black')
+    creator_input = ctk.CTkEntry(creator_canvas, text_color='white')
     creator_input.pack()
     # Create the 'Add creator' button
     def add_creator_button_click():
-        creator_status_listbox.insert("end", creator_input.get())
-        with open(f"creator_status_{current_status}.txt", "a") as file:
-            file.write("\n" + creator_input.get())
-        populate_creator_status_listbox(current_status)
+        global current_status
+        creator_id = creator_input.get()
+        if main_functions.get_user_details(creator_id) == None:
+            message_label.configure(text="Error: User not found", text_color='red')
+            print("Error: User not found")
+        else:
+            message_label.configure(text="User succesfully added to " + current_status + " list", text_color='green')
+            with open(f"creator_status_{current_status}.txt", "a") as file:
+                file.write("\n")
+                file.write(creator_input.get())
+                file.close()
+            populate_creator_status_listbox(current_status)
     add_creator_button = ctk.CTkButton(creator_canvas, text="Add Creator", command=lambda: add_creator_button_click())
     add_creator_button.pack()
     # Create the 'Remove creator' button
     def remove_creator_button_click():
+        global current_status
         creator_status_listbox.delete(creator_status_listbox.curselection())
+        message_label.configure(text="User succesfully removed from " + current_status + " list", text_color='green')
         with open(f"creator_status_{current_status}.txt", "w") as file:
             for i in range(creator_status_listbox.size()):
                 file.write(creator_status_listbox.get(i))
@@ -475,6 +493,8 @@ set_up_header(False)
 set_up_footer()
 if(main_functions.start_driver() == False):
     load_page("Chrome Driver")
+
 main_functions.check_for_creator_status_file()
 main_functions.check_for_settings_file()
+main_functions.populate_user_lists()
 app.mainloop()
