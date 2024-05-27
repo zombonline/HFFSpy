@@ -28,22 +28,22 @@ def populate_user_lists():
     contacted_users = []
     planned_users = []
     with open("creator_status_signed.txt", "r") as creator_status_file:    
-        signed_users = [line.strip() for line in creator_status_file.readlines()]
+        signed_users = [int(line.strip()) for line in creator_status_file.readlines()]
     with open("creator_status_contacted.txt", "r") as creator_status_file:
-        contacted_users = [line.strip() for line in creator_status_file.readlines()]
+        contacted_users = [int(line.strip()) for line in creator_status_file.readlines()]
     with open("creator_status_planned.txt", "r") as creator_status_file:
-        planned_users = [line.strip() for line in creator_status_file.readlines()]
+        planned_users = [int(line.strip()) for line in creator_status_file.readlines()]
 
     print("signed", signed_users)
     print("contacted",contacted_users)
     print("planned", planned_users)
 
 def get_creator_status(creator_id):
-    if f"{creator_id}\n" in signed_users:
+    if creator_id in signed_users:
         return "Signed"
-    elif f"{creator_id}\n" in contacted_users:
+    elif creator_id in contacted_users:
         return "Contacted"
-    elif f"{creator_id}\n" in planned_users:
+    elif creator_id in planned_users:
         return "Pending"
     else:
         return None
@@ -159,13 +159,15 @@ def create_workshop_item(item_id):
     creator_status = get_creator_status(creator_id)
     contribution_count = get_item_creator_contribution_count(creator_id)
     followers = get_item_creator_followers_count(creator_id)
+
+    print(creator_status, creator_name)
     return WorkshopItem(title, creator_id, creator_name, country, detected_language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers)
 
 def get_item_title(workshop_item):
     return workshop_item['title']
 
 def get_item_creator_id(workshop_item):
-    return workshop_item['creator']
+    return int(workshop_item['creator'])
 
 def get_user_details(creator_id):
     try:

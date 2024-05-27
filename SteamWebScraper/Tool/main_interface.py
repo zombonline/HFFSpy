@@ -169,7 +169,6 @@ def set_up_top_ugc_of_workshop_month_page():
     # Create the info label
     info_label = ctk.CTkLabel(top_monthly_workshop_items_canvas, text="This will scan the specified amount of items on the workshop within the provided date range. They will be listed by 'Most Popular' on steam.", wraplength = 200, text_color='black')
     info_label.pack()
-
     # Create the back button
     back_button = ctk.CTkButton(top_monthly_workshop_items_canvas, text="Back", command=lambda: load_page("Home"))
     back_button.pack(pady=10)
@@ -328,21 +327,30 @@ def set_up_creator_page():
             print("Error: User not found")
         else:
             message_label.configure(text="User succesfully added to " + current_status + " list", text_color='green')
-            with open(f"creator_status_{current_status}.txt", "a") as file:
-                file.write("\n")
-                file.write(creator_input.get())
-                file.close()
+            with open(f"creator_status_{current_status}.txt", "r") as oldfile, open(f"creator_status_{current_status}_temp.txt", "w") as newfile:
+                for line in oldfile:
+                    newfile.write(line)
+                newfile.write(creator_id + "\n")
+            os.remove(f"creator_status_{current_status}.txt")
+            os.rename(f"creator_status_{current_status}_temp.txt", f"creator_status_{current_status}.txt")
             populate_creator_status_listbox(current_status)
+            creator_input.delete(0, "end")
     add_creator_button = ctk.CTkButton(creator_canvas, text="Add Creator", command=lambda: add_creator_button_click())
     add_creator_button.pack()
     # Create the 'Remove creator' button
     def remove_creator_button_click():
         global current_status
-        creator_status_listbox.delete(creator_status_listbox.curselection())
+        # Get position of selected item
+        selected_item_index = creator_status_listbox.curselection()[0]
         message_label.configure(text="User succesfully removed from " + current_status + " list", text_color='green')
-        with open(f"creator_status_{current_status}.txt", "w") as file:
-            for i in range(creator_status_listbox.size()):
-                file.write(creator_status_listbox.get(i))
+        with open(f"creator_status_{current_status}.txt", "r") as oldfile, open(f"creator_status_{current_status}_temp.txt", "w") as newfile:
+            for index, line in enumerate(oldfile):
+                if index == selected_item_index or line == "\n":
+                    continue
+                newfile.write(line)
+        os.remove(f"creator_status_{current_status}.txt")
+        os.rename(f"creator_status_{current_status}_temp.txt", f"creator_status_{current_status}.txt")
+            
         populate_creator_status_listbox(current_status)
     remove_creator_button = ctk.CTkButton(creator_canvas, text="Remove Creator", command=lambda: remove_creator_button_click())
     remove_creator_button.pack()

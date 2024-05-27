@@ -3,8 +3,21 @@ import xlsxwriter
 import main_functions
 import os
 def output_to_excel(level_list, model_list):
+    
     workbook = xlsxwriter.Workbook('UGCOfWorkshopMonth.xlsx')
     worksheet = workbook.add_worksheet()
+    format_dict = {
+        "Signed": workbook.add_format({'bold': True, 'bg_color': 'green'}),
+        "Contacted": workbook.add_format({'bold': True, 'bg_color': 'yellow'}),
+        "Planned": workbook.add_format({'bold': True, 'bg_color': 'red'}),
+        None: workbook.add_format({'bold': False, 'bg_color': 'white'})
+    }
+
+    worksheet.write('K1', "Key")
+    worksheet.write('K2', "Signed", format_dict["Signed"])
+    worksheet.write('K3', "Contacted", format_dict["Contacted"])
+    worksheet.write('K4', "Planned", format_dict["Planned"])
+
     worksheet.write('A1', 'Level')
     worksheet.write('A2', 'Rank')
     worksheet.write('B2', 'Title')
@@ -31,7 +44,7 @@ def output_to_excel(level_list, model_list):
     for i in range(len(level_list)):
         worksheet.write(i+2, 0, i+1)
         worksheet.write(i+2, 1, level_list[i].title)
-        worksheet.write(i+2, 2, level_list[i].creator_name)
+        worksheet.write(i+2, 2, level_list[i].creator_name, format_dict[level_list[i].creator_status])
         worksheet.write(i+2, 3, level_list[i].date_posted)
         worksheet.write(i+2, 4, level_list[i].country)
         worksheet.write(i+2, 5, level_list[i].language)
@@ -41,7 +54,7 @@ def output_to_excel(level_list, model_list):
     for i in range(len(model_list)):
         worksheet.write(i + nextHeaderCount, 0, i+1)
         worksheet.write(i + nextHeaderCount, 1, model_list[i].title)
-        worksheet.write(i + nextHeaderCount, 2, model_list[i].creator_name)
+        worksheet.write(i + nextHeaderCount, 2, model_list[i].creator_name, format_dict[model_list[i].creator_status])
         worksheet.write(i + nextHeaderCount, 3, model_list[i].date_posted)
         worksheet.write(i + nextHeaderCount, 4, model_list[i].country)
         worksheet.write(i + nextHeaderCount, 5, model_list[i].language)
