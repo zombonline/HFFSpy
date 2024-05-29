@@ -2,6 +2,7 @@ from datetime import date
 import xlsxwriter
 import main_functions
 import os
+import queue
 def output_to_excel(games):
     workbook = xlsxwriter.Workbook('UGCOfMajorGames.xlsx')
     worksheet = workbook.add_worksheet()
@@ -17,15 +18,14 @@ def output_to_excel(games):
     workbook.close()
     os.startfile('UGCOfMajorGames.xlsx')
 
-def scan(footer_label):
-    footer_label.pack()
-    footer_label.configure(text="Getting current top 100 games from SteamDB...")
+def scan(progress_queue):
+    progress_queue.put("Getting current top 100 games from SteamDB...")
     appIDs = main_functions.get_top_100_appIDs_steamDB() 
-    footer_label.configure(text="Creating game items...")
+    progress_queue.put("Creating game items...")
     games = []
     for i in range(len(appIDs)):
-        footer_label.configure(text=f"Gathering workshop data for game {i+1} of {len(appIDs)}")
+        progress_queue.put(f"Gathering workshop data for game {i+1} of {len(appIDs)}")
         games.append(main_functions.create_game_item(appIDs[i]))    
-    footer_label.configure(text="Outputting to Excel...")
+    progress_queue.put("Outputting to Excel...")
     output_to_excel(games)
-    footer_label.configure(text="")
+    progress_queue.put("")

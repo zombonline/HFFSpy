@@ -1,7 +1,6 @@
 import time
 from langdetect import detect
 from steam import Steam
-from decouple import config
 import requests
 import sys
 from selenium import webdriver
@@ -13,14 +12,6 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support import expected_conditions as EC
 from datetime import datetime
 import os
-KEY = config('STEAM_API_KEY')
-steam = Steam(KEY)
-url = f"https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/"   
-driver = None
-wait = None
-signed_users = []
-contacted_users = []
-planned_users = []
 
 def populate_user_lists():
     global signed_users, contacted_users, planned_users
@@ -58,13 +49,16 @@ def start_driver():
     if(get_setting_value("display_browser") == 0):
         options.add_argument("--headless")
         print("No browser will be displayed")
+    else:
+        print("Browser will be displayed")
     base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     chrome_driver_path = os.path.join(base_dir, "chromedriver.exe")
     print(f"Looking for ChromeDriver at {chrome_driver_path}")
     if not os.path.exists(chrome_driver_path):
         print("ChromeDriver not found. Please download the latest version of ChromeDriver from https://sites.google.com/chromium.org/driver/ and place it in the same directory as this script.")
-        input("Press Enter to close the program...")
         return False
+    else:
+        print("ChromeDriver found.")
     webdriver_service = Service(chrome_driver_path)
     driver = webdriver.Chrome(service=webdriver_service, options=options)
     wait = WebDriverWait(driver, 10)
@@ -362,13 +356,16 @@ def apply_setting_value(setting_name, setting_value):
         setting_file.write(line)
     setting_file.close()
 
-def get_setting_value(setting_name):
+def get_setting_value(setting_name, return_type = "int"):
     setting_file = open("settings.txt", "r")
     setting_lines = setting_file.readlines()
     setting_file.close()
     for line in setting_lines:
         if line.split(":")[0] == setting_name:
-            return int(line.split(":")[1])
+            if return_type == "int":
+                return int(line.split(":")[1])
+            elif return_type == "str":
+                return line.split(":")[1].strip()
     return None
 
 def log_in_steam_user(user, password):
@@ -439,3 +436,29 @@ def check_for_creator_status_file():
     if not os.path.exists("creator_status_signed.txt"):
         creator_status_file = open("creator_status_signed.txt", "w")
         creator_status_file.close()
+
+def set_steam_api_key():
+    global KEY, steam, url
+    KEY = get_setting_value("steam_api_key", "str")
+    steam = Steam(KEY)
+    url = f"https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/"
+    try:
+        print("Testing Steam API key...")
+        response = get_item_and_user_data(3256120107)
+        if 'error' in response:
+            print("Invalid Steam API key. Please enter a valid key in the settings file.")
+            return False
+    except:
+        print("An error occurred while testing the Steam API key.")
+        return False
+    return True
+
+
+KEY = None
+steam = None
+url = None 
+driver = None
+wait = None
+signed_users = []
+contacted_users = []
+planned_users = []

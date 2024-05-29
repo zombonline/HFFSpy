@@ -8,7 +8,7 @@ import gen_most_played_workshop_games
 import gen_total_items_in_date_range
 import main_functions
 import threading
-
+import queue
 import time
 
 def set_up_header(account_name):
@@ -23,15 +23,7 @@ def set_up_header(account_name):
     else:
         header_label = ctk.CTkLabel(header_canvas, text="Not logged in", text_color='black', font=("Arial", 18))
     header_label.pack()
-def set_up_footer():
-    global footer_label
-    for widget in footer_frame.winfo_children():
-        widget.destroy()
-    # Create the footer canvas
-    footer_canvas = ctk.CTkCanvas(footer_frame, height=0, bg='orange')
-    footer_canvas.pack(expand=False, fill="both")
-    # Create the footer label
-    footer_label = ctk.CTkLabel(footer_canvas, text="", text_color='black', font=("Arial", 18))
+
 def set_up_home_page():
     # Create the home frame
     home_frame = ctk.CTkFrame(main_frame)
@@ -74,17 +66,24 @@ def set_up_scanning_page():
     # Create the loading label
     loading_label = ctk.CTkLabel(loading_canvas, text="Scanning...", text_color='black', font=("Arial", 24))
     loading_label.pack()
-    # Create an indeterminate progress bar
-    progress_bar = ctk.CTkProgressBar(loading_canvas, width=300, height=20,mode='indeterminate')
-    progress_bar.pack()
-    progress_bar.start()
-    while active_thread.is_alive():
-        progress_bar.update()
-    progress_bar.stop()
-    loading_label.configure(text="Scanning complete")
-    # Create the back button
-    back_button = ctk.CTkButton(loading_canvas, text="Back", command=lambda: load_page("Home"))
-    back_button.pack()
+    # Create the progress message label
+    progress_message_label = ctk.CTkLabel(loading_canvas, text="This may take a while", text_color='black')
+    progress_message_label.pack()
+    def update_progress():
+        try:
+            while True:
+                msg = progress_queue.get_nowait()
+                progress_message_label.configure(text=msg)
+        except queue.Empty:
+            pass
+        if active_thread.is_alive():
+            app.after(100, update_progress)
+        else:
+            loading_label.configure(text="Scanning complete")
+            # Create the back button
+            back_button = ctk.CTkButton(loading_canvas, text="Back", command=lambda: load_page("Home"))
+            back_button.pack()
+    app.after(100, update_progress)
 def set_up_top_100_workshops_page():
     # Create the total UGC count frame
     total_UGC_count_frame = ctk.CTkFrame(main_frame)
@@ -104,8 +103,7 @@ def set_up_top_100_workshops_page():
     # Create the scan total UGC count button
     def scan_total_UGC_count_button_click():
         global active_thread
-        global footer_label
-        active_thread = threading.Thread(target=gen_most_played_workshop_games.scan, args=(footer_label,))
+        active_thread = threading.Thread(target=gen_most_played_workshop_games.scan, args=(progress_queue,))
         active_thread.start()
         load_page("Scanning")
         app.update()
@@ -143,8 +141,8 @@ def set_up_total_chinese_count_page():
     # Create the 'scrape page' button
     def scan_total_chinese_count_button_click(start_date, end_date):
         global active_thread
-        global footer_label
-        active_thread = threading.Thread(target=gen_total_items_in_date_range.scan, args=(get_timestamp(start_date), get_timestamp(end_date, True), footer_label))
+        global progress_queue
+        active_thread = threading.Thread(target=gen_total_items_in_date_range.scan, args=(get_timestamp(start_date), get_timestamp(end_date, True), progress_queue))
         active_thread.start()
         load_page("Scanning")
         app.update()
@@ -193,8 +191,8 @@ def set_up_top_ugc_of_workshop_month_page():
     # Create the scan top ugc of workshop month button
     def scan_top_ugc_of_workshop_month_button_click(start_date, end_date, amount_of_items):
         global active_thread
-        global footer_label
-        active_thread = threading.Thread(target=gen_top_item_in_date_range.scan, args=(get_timestamp(start_date), get_timestamp(end_date, True), amount_of_items, footer_label))
+        global progress_var
+        active_thread = threading.Thread(target=gen_top_item_in_date_range.scan, args=(get_timestamp(start_date), get_timestamp(end_date, True), amount_of_items, progress_queue))
         active_thread.start()
         load_page("Scanning")
         app.update()
@@ -431,8 +429,33 @@ def set_up_chrome_driver_page():
     back_button = ctk.CTkButton(chrome_driver_canvas, text="Back", command=lambda: load_page("Home"))
     back_button.pack()
     # Create the download button
-    download_button = ctk.CTkButton(chrome_driver_canvas, text="Download", command=lambda: os.system("https://googlechromelabs.github.io/chrome-for-testing/"))
+    download_button = ctk.CTkButton(chrome_driver_canvas, text="Download", command=lambda: os.system("start https://googlechromelabs.github.io/chrome-for-testing/"))
     download_button.pack()
+def set_up_add_api_key_page():
+    # Create the add api key frame
+    add_api_key_frame = ctk.CTkFrame(main_frame)
+    add_api_key_frame.pack(expand=True, fill="both")
+    # Create the add api key canvas
+    add_api_key_canvas = ctk.CTkCanvas(add_api_key_frame)
+    add_api_key_canvas.pack(expand=True, fill="both")
+    # Create the title
+    title_label = ctk.CTkLabel(add_api_key_canvas, text="INVALID API KEY", text_color='black', font=("Arial", 24))
+    title_label.pack()
+    # Create the info label
+    info_label = ctk.CTkLabel(add_api_key_canvas, text="Please enter a valid steam API key", wraplength = 200, text_color='black')
+    info_label.pack()
+    # Create the api key input
+    api_key_input = ctk.CTkEntry(add_api_key_canvas, text_color='white')
+    api_key_input.pack()
+    # Create the submit button
+    def submit_button_click():
+        main_functions.apply_setting_value("steam_api_key", api_key_input.get())
+        if(main_functions.set_steam_api_key() == True):
+            load_page("Home")
+        else:
+            api_key_input.delete(0, "end")
+    submit_button = ctk.CTkButton(add_api_key_canvas, text="Submit", command=lambda: submit_button_click())
+    submit_button.pack()
 
 def load_page(page):
     for widget in main_frame.winfo_children():
@@ -455,6 +478,8 @@ def load_page(page):
         set_up_steam_login_page()
     elif page == "Chrome Driver":
         set_up_chrome_driver_page()
+    elif page == "Add API Key":
+        set_up_add_api_key_page()
     else:
         print("Error: Page not found")
         return
@@ -478,11 +503,8 @@ header_frame.pack(expand=False, fill="both")
 # Create the main frame
 main_frame = ctk.CTkFrame(app)
 main_frame.pack(expand=True, fill="both")
-# Create the footer frame
-footer_frame = ctk.CTkFrame(app, height=0)
-footer_frame.pack(expand=False, fill="both")
-# Create the footer label
-footer_label = None
+
+progress_queue = queue.Queue()
 
 #region input elements
 date_range_start_input = tk.StringVar()
@@ -498,11 +520,13 @@ active_thread = None
 current_page = "Home"
 load_page(current_page)
 set_up_header(False)
-set_up_footer()
-if(main_functions.start_driver() == False):
-    load_page("Chrome Driver")
-
 main_functions.check_for_creator_status_file()
 main_functions.check_for_settings_file()
 main_functions.populate_user_lists()
+
+if(main_functions.start_driver() == False):
+    load_page("Chrome Driver")
+if(main_functions.set_steam_api_key() == False):
+    load_page("Add API Key")
+
 app.mainloop()
