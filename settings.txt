@@ -2,4 +2,5 @@ comments_levels:0
 comments_models:0
 ratings_levels:0
 ratings_models:0
-display_browser:0
+display_browser:1
+steam_api_key:44D14DCF6FB064FEE89DBDC32B44F89C

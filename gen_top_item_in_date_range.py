@@ -2,6 +2,7 @@ from datetime import date
 import xlsxwriter
 import main_functions
 import os
+import queue
 def output_to_excel(level_list, model_list):
     
     workbook = xlsxwriter.Workbook('UGCOfWorkshopMonth.xlsx')
@@ -64,28 +65,27 @@ def output_to_excel(level_list, model_list):
     workbook.close() 
     os.startfile('UGCOfWorkshopMonth.xlsx')
 
-def scan(start_date_timestamp, end_date_timestamp, amount_of_items, footer_label):
-    footer_label.pack()
-    footer_label.configure(text="Loading workshop levels page...")
+def scan(start_date_timestamp, end_date_timestamp, amount_of_items, progress_queue):
+    progress_queue.put("Loading workshop levels page...")
     level_link = f"https://steamcommunity.com/workshop/browse/?appid=477160&browsesort=trend&section=readytouseitems&requiredtags%5B0%5D=Levels&created_date_range_filter_start={start_date_timestamp}&created_date_range_filter_end={end_date_timestamp}&updated_date_range_filter_start=NaN&updated_date_range_filter_end=NaN&actualsort=trend&p=1"
     main_functions.driver.get(level_link)
-    footer_label.configure(text="Getting level item IDs...")
+    progress_queue.put("Getting level item IDs...")
     item_ids = main_functions.get_item_ids(amount_of_items)
     level_workshop_data = []
     for i in range(len(item_ids)):
-        footer_label.configure(text=f"Gathering workshop data for level {i+1} of {len(item_ids)}")
+        progress_queue.put(f"Gathering workshop data for level {i+1} of {len(item_ids)}")
         level_workshop_data.append(main_functions.create_workshop_item(item_ids[i]))
 
-    footer_label.configure(text="Loading workshop models page...")
+    progress_queue.put("Loading workshop models page...")
     model_link = f"https://steamcommunity.com/workshop/browse/?appid=477160&browsesort=trend&section=readytouseitems&requiredtags%5B0%5D=Model&created_date_range_filter_start={start_date_timestamp}&created_date_range_filter_end={end_date_timestamp}&updated_date_range_filter_start=NaN&updated_date_range_filter_end=NaN&actualsort=trend&p=1"
     main_functions.driver.get(model_link)
-    footer_label.configure(text="Getting model item IDs...")
+    progress_queue.put("Getting model item IDs...")
     item_ids = main_functions.get_item_ids(amount_of_items)
     model_workshop_data = []
     for i in range(len(item_ids)):
-        footer_label.configure(text=f"Gathering workshop data for model {i+1} of {len(item_ids)}")
+        progress_queue.put(f"Gathering workshop data for model {i+1} of {len(item_ids)}")
         model_workshop_data.append(main_functions.create_workshop_item(item_ids[i]))
     
-    footer_label.configure(text="Outputting to Excel...")
+    progress_queue.put("Outputting to Excel...")
     output_to_excel(level_workshop_data, model_workshop_data)
-    footer_label.configure(text="")  
+    progress_queue.put("")
