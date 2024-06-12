@@ -113,7 +113,11 @@ def scan(start_date, end_date, progress_queue):
     workshop_data = []
     for i in range(len(item_ids)):
         progress_queue.put(f"Gathering workshop data for item {i+1} of {len(item_ids)}")
-        workshop_data.append(main_functions.create_workshop_item(item_ids[i]))
+        item = main_functions.create_workshop_item(item_ids[i])
+        if item is None:
+            print(f"No data retreieved for item {i+1} of {len(item_ids)}, id: {item_ids[i]}")
+            continue
+        workshop_data.append(item)
     progress_queue.put("Outputting to Excel...")
     output_to_excel(start_date, end_date, workshop_data)
     progress_queue.put("")
