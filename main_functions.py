@@ -104,14 +104,14 @@ def get_item_ids(amount = None):
     item_ids = []
     maxItemsFound = False
     while len(item_ids) < amount and maxItemsFound == False:
-        for item_css_element in driver.find_elements(By.CSS_SELECTOR, 'div.workshopItem'):
-            item_id = item_css_element.find_element(By.CSS_SELECTOR, 'a').get_attribute('data-publishedfileid')
-            item_ids.append(item_id)
-        workshop_next_page()
         try:
             wait.until(lambda driver: len(driver.find_elements(By.CSS_SELECTOR, 'div.workshopItem')) > 0)
         except:
             print("No items on page.")
+        for item_css_element in driver.find_elements(By.CSS_SELECTOR, 'div.workshopItem'):
+            item_id = item_css_element.find_element(By.CSS_SELECTOR, 'a').get_attribute('data-publishedfileid')
+            item_ids.append(item_id)
+        workshop_next_page()
         maxItemsFound = len(driver.find_elements(By.CSS_SELECTOR, 'div.workshopItem')) == 0
     return item_ids[:amount]
 
@@ -122,6 +122,11 @@ def get_item_and_user_data(item_id):
             'publishedfileids[0]': item_id
         }
     response = requests.post(url, data=params)
+    if response.text:
+        data = response.json()
+    else:
+        print(f"No data received for item_id: {item_id}")
+        return None, None
     data = response.json()
     workShopItem = data['response']['publishedfiledetails'][0]
     user = steam.users.get_user_details(data['response']['publishedfiledetails'][0]['creator'])
@@ -129,6 +134,8 @@ def get_item_and_user_data(item_id):
 
 def create_workshop_item(item_id):
     workshop_item, user = get_item_and_user_data(item_id)
+    if workshop_item is None or user is None:
+        return None
     title = get_item_title(workshop_item)
     creator_id = get_item_creator_id(workshop_item)
     creator_name = get_item_creator_name(user)
@@ -153,8 +160,6 @@ def create_workshop_item(item_id):
     creator_status = get_creator_status(creator_id)
     contribution_count = get_item_creator_contribution_count(creator_id)
     followers = get_item_creator_followers_count(creator_id)
-
-    print(creator_status, creator_name)
     return WorkshopItem(title, creator_id, creator_name, country, detected_language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers)
 
 def get_item_title(workshop_item):
