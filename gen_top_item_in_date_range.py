@@ -10,14 +10,14 @@ def output_to_excel(level_list, model_list):
     format_dict = {
         "Signed": workbook.add_format({'bold': True, 'bg_color': 'green'}),
         "Contacted": workbook.add_format({'bold': True, 'bg_color': 'yellow'}),
-        "Planned": workbook.add_format({'bold': True, 'bg_color': 'red'}),
+        "Planned": workbook.add_format({'bold': True, 'bg_color': 'orange'}),
         None: workbook.add_format({'bold': False, 'bg_color': 'white'})
     }
 
-    worksheet.write('K1', "Key")
-    worksheet.write('K2', "Signed", format_dict["Signed"])
-    worksheet.write('K3', "Contacted", format_dict["Contacted"])
-    worksheet.write('K4', "Planned", format_dict["Planned"])
+    worksheet.write('L1', "Key")
+    worksheet.write('L2', "Signed", format_dict["Signed"])
+    worksheet.write('L3', "Contacted", format_dict["Contacted"])
+    worksheet.write('L4', "Planned", format_dict["Planned"])
 
     worksheet.write('A1', 'Level')
     worksheet.write('A2', 'Rank')
@@ -28,7 +28,8 @@ def output_to_excel(level_list, model_list):
     worksheet.write('F2', 'Language')
     worksheet.write('G2', f'TUS ({date.today()})')
     worksheet.write('H2', 'Rating')
-    worksheet.write('I2', 'Comment Count')
+    worksheet.write('I2', 'Visitors')
+    worksheet.write('J2', 'Comment Count')
 
     nextHeaderCount = 4 + len(level_list)
     worksheet.write('A' + str(nextHeaderCount-1), 'Model')
@@ -40,7 +41,8 @@ def output_to_excel(level_list, model_list):
     worksheet.write('F' + str(nextHeaderCount), 'Language')
     worksheet.write('G' + str(nextHeaderCount), f'TUS ({date.today()})')
     worksheet.write('H' + str(nextHeaderCount), 'Rating')
-    worksheet.write('I' + str(nextHeaderCount), 'Comment Count')
+    worksheet.write('I' + str(nextHeaderCount), 'Visitors')
+    worksheet.write('J' + str(nextHeaderCount), 'Comment Count')
 
     for i in range(len(level_list)):
         worksheet.write(i+2, 0, i+1)
@@ -51,7 +53,8 @@ def output_to_excel(level_list, model_list):
         worksheet.write(i+2, 5, level_list[i].language)
         worksheet.write(i+2, 6, level_list[i].tus)
         worksheet.write(i+2, 7, level_list[i].rating)
-        worksheet.write(i+2, 8, level_list[i].comment_count)
+        worksheet.write(i+2, 8, level_list[i].visitors)
+        worksheet.write(i+2, 9, level_list[i].comment_count)
     for i in range(len(model_list)):
         worksheet.write(i + nextHeaderCount, 0, i+1)
         worksheet.write(i + nextHeaderCount, 1, model_list[i].title)
@@ -61,7 +64,8 @@ def output_to_excel(level_list, model_list):
         worksheet.write(i + nextHeaderCount, 5, model_list[i].language)
         worksheet.write(i + nextHeaderCount, 6, model_list[i].tus)
         worksheet.write(i + nextHeaderCount, 7, model_list[i].rating)
-        worksheet.write(i + nextHeaderCount, 8, model_list[i].comment_count)
+        worksheet.write(i + nextHeaderCount, 8, model_list[i].visitors)
+        worksheet.write(i + nextHeaderCount, 9, model_list[i].comment_count)
     workbook.close() 
     os.startfile('UGCOfWorkshopMonth.xlsx')
 

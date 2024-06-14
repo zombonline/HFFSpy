@@ -65,7 +65,7 @@ def start_driver():
     return driver
 
 class WorkshopItem:
-    def __init__(self, title, creator_id, creator_name, country, language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers):
+    def __init__(self, title, creator_id, creator_name, country, language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers, visitors):
         self.title = title
         self.creator_ID = creator_id
         self.creator_name = creator_name
@@ -80,6 +80,7 @@ class WorkshopItem:
         self.creator_status = creator_status
         self.contribution_count = contribution_count
         self.followers = followers
+        self.visitors = visitors
 
 def workshop_next_page():
     currentPageUrl = driver.current_url
@@ -128,14 +129,18 @@ def get_item_and_user_data(item_id):
         print(f"No data received for item_id: {item_id}")
         return None, None
     data = response.json()
-    workShopItem = data['response']['publishedfiledetails'][0]
-    user = steam.users.get_user_details(data['response']['publishedfiledetails'][0]['creator'])
-    return workShopItem, user
+    if 'creator' in data['response']['publishedfiledetails'][0]:
+        workShopItem = data['response']['publishedfiledetails'][0]
+        user = steam.users.get_user_details(data['response']['publishedfiledetails'][0]['creator'])
+        return workShopItem, user
+    else:
+        print(f"Item ID {item_id} has no creator data.")
+        return None, None
 
 def create_workshop_item(item_id):
     workshop_item, user = get_item_and_user_data(item_id)
     if workshop_item is None or user is None:
-        return None
+        return WorkshopItem(f"No data returned from {item_id}, gather it manually here https://steamcommunity.com/sharedfiles/filedetails/?id={item_id}", None, None, None, None, None, None, None, None, None, None, None, None, None, None)
     title = get_item_title(workshop_item)
     creator_id = get_item_creator_id(workshop_item)
     creator_name = get_item_creator_name(user)
@@ -160,7 +165,8 @@ def create_workshop_item(item_id):
     creator_status = get_creator_status(creator_id)
     contribution_count = get_item_creator_contribution_count(creator_id)
     followers = get_item_creator_followers_count(creator_id)
-    return WorkshopItem(title, creator_id, creator_name, country, detected_language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers)
+    visitors = get_item_unique_visitors(workshop_item)
+    return WorkshopItem(title, creator_id, creator_name, country, detected_language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers, visitors)
 
 def get_item_title(workshop_item):
     return workshop_item['title']
@@ -208,6 +214,21 @@ def get_item_creator_country(user):
         return user['player']['loccountrycode']
     else:
         return "N/A"
+    
+def get_item_unique_visitors(workshop_item):
+    file_id = workshop_item["publishedfileid"]
+    item_url = f"https://steamcommunity.com/sharedfiles/filedetails/?id={file_id}"
+    if driver.current_url != item_url:
+        driver.get(item_url)
+    try:
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "stats_table")))
+        stats_table = driver.find_element(By.CLASS_NAME, "stats_table")
+        tbody = stats_table.find_element(By.TAG_NAME, "tbody")
+        first_row = tbody.find_element(By.TAG_NAME, "tr")
+        unique_visitors = first_row.text.split(' ')[0].replace(',', '')
+    except TimeoutException:
+        unique_visitors = "N/A"
+    return unique_visitors
 
 def get_item_creator_language(user, workshop_item):
     other_asian_language_codes = ['id', 'ja', 'ko', 'th', 'tl', 'vi']
@@ -268,7 +289,7 @@ def get_item_rating(workshop_item):
         driver.get(item_url)
     try:
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "workshopAdminStatsBarPercent")))
-        rating = driver.find_element(By.CLASS_NAME, "workshopAdminStatsBarPercent").text
+        rating = driver.find_element(By.CLASS_NAME, "workshopAdminStatsBarPercent").text.split('%')[0]+"%"
     except TimeoutException:
         rating = "N/A"
     return rating
@@ -378,6 +399,9 @@ def log_in_steam_user(user, password):
     #If the log in is succesful, the function will return 0
     #If there is a verification code screen shown, the program will return 1
     #If there is a "use steam mobile app to log in" screen shown, the program will return 2
+    if(check_steam_user_logged_in() != False):
+        print("Already logged in.")
+        return 0
     driver.get('https://steamcommunity.com/login/home')
     try:
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "_2eKVn6g5Yysx9JmutQe7WV")))
@@ -390,15 +414,15 @@ def log_in_steam_user(user, password):
     password_input.send_keys(password)
     submit_button = driver.find_element(By.CLASS_NAME, "_2QgFEj17t677s3x299PNJQ")
     submit_button.click()
-    if check_steam_user_logged_in(driver):
+    if check_steam_user_logged_in():
         print("Logged in.")
-        return 0
+        return 1
     elif len(driver.find_elements(By.CLASS_NAME, "HPSuAjHOkNfMHwURXTns7")) > 0:
         print("Verification code screen found.")
-        return 1
+        return 2
     elif len(driver.find_elements(By.CLASS_NAME, "_7LmnTPGNvHEfRVizEiGEV")) > 0:
         print("Use steam mobile app to log in screen found.")
-        return 2    
+        return 3  
 
 def verify_steam_user_log_in(verify_code):
     try:
@@ -430,6 +454,7 @@ def check_for_settings_file():
         setting_file.write("comments_levels:0\n")
         setting_file.write("ratings_models:0\n")
         setting_file.write("comments_models:0\n")
+        setting_file.write("steam_api_key:\n")
         setting_file.close()
 def check_for_creator_status_file():
     if not os.path.exists("creator_status_contacted.txt"):
