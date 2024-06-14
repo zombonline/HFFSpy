@@ -5,7 +5,7 @@ a = Analysis(
     ['main_interface.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('icon.ico', '.')],
     hiddenimports=['babel', 'babel.numbers'],
     hookspath=[],
     hooksconfig={},
@@ -21,7 +21,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='main_interface',
+    name='HFFSpy',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -34,4 +34,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='icon.ico'
 )

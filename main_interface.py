@@ -9,6 +9,7 @@ import gen_total_items_in_date_range
 import main_functions
 import threading
 import queue
+import sys
 import time
 
 def set_up_header(account_name):
@@ -187,6 +188,7 @@ def set_up_top_ugc_of_workshop_month_page():
     amount_of_items_label = ctk.CTkLabel(date_range_frame, text="Amount of Items to Grab", text_color='white')
     amount_of_items_label.grid(row=3, column=1, padx=10)
     amount_of_items_input = ctk.CTkEntry(date_range_frame)
+    amount_of_items_input.insert(0, "20")
     amount_of_items_input.grid(row=4, column=1, padx=10, pady=10)
     # Create the scan top ugc of workshop month button
     def scan_top_ugc_of_workshop_month_button_click(start_date, end_date, amount_of_items):
@@ -386,9 +388,13 @@ def set_up_steam_login_page():
     def login_button_click():
         state = main_functions.log_in_steam_user(username_input_var.get(), password_input_var.get())
         if state == 0:
-            set_up_header(username_input_var.get())
+            #User already logged in
+            set_up_header(main_functions.check_steam_user_logged_in())
             load_page("Home")
         elif state == 1:
+            set_up_header(username_input_var.get())
+            load_page("Home")
+        elif state == 2:
             # Create the verify code input
             verify_code_label = ctk.CTkLabel(steam_login_canvas, text="Verify Code", text_color='black')
             verify_code_label.pack()
@@ -400,7 +406,7 @@ def set_up_steam_login_page():
                 set_up_header(main_functions.check_steam_user_logged_in())
             verify_code_button = ctk.CTkButton(steam_login_canvas, text="Verify", command=lambda: verify_code_button_click())
             verify_code_button.pack()
-        elif state == 2:
+        elif state == 3:
             #Create the please check steam app label
             please_check_steam_app_label = ctk.CTkLabel(steam_login_canvas, text="Please confirm log in on the Steam app", text_color='black')
             please_check_steam_app_label.pack()
@@ -423,11 +429,8 @@ def set_up_chrome_driver_page():
     title_label = ctk.CTkLabel(chrome_driver_canvas, text="Chrome Driver", text_color='black', font=("Arial", 24))
     title_label.pack()
     # Create the info label
-    info_label = ctk.CTkLabel(chrome_driver_canvas, text="There may have been an error with your Chrome Driver. Please ensure you have a chrome driver installed in the program folder and the version matches your current installation of Google Chrome.", wraplength = 200, text_color='black')
+    info_label = ctk.CTkLabel(chrome_driver_canvas, text="There may have been an error with your Chrome Driver. Please ensure you have a chrome driver installed in the program folder and the version matches your current installation of Google Chrome. Once done, please restart the program.", wraplength = 200, text_color='black')
     info_label.pack()
-    # Create the back button
-    back_button = ctk.CTkButton(chrome_driver_canvas, text="Back", command=lambda: load_page("Home"))
-    back_button.pack()
     # Create the download button
     download_button = ctk.CTkButton(chrome_driver_canvas, text="Download", command=lambda: os.system("start https://googlechromelabs.github.io/chrome-for-testing/"))
     download_button.pack()
@@ -492,8 +495,18 @@ def get_timestamp(date_string, end_of_day=False):
         return int(date.replace(hour=23, minute=59, second=59).timestamp())
     return int(date.timestamp())
 
+def get_resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 app = tk.Tk()
-app.title("Curve Tool")
+app.title("HFFSpy")
+icon_path = get_resource_path("icon.ico")
+app.iconbitmap(icon_path)
 app.geometry("600x500")
 app.minsize(600, 500)
 
@@ -526,7 +539,7 @@ main_functions.populate_user_lists()
 
 if(main_functions.start_driver() == False):
     load_page("Chrome Driver")
-if(main_functions.set_steam_api_key() == False):
+elif(main_functions.set_steam_api_key() == False):
     load_page("Add API Key")
 
 app.mainloop()
