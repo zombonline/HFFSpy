@@ -4,3 +4,4 @@ creator_status_planned.txt
 settings.txt
 __pycache__/
 build/
+dist/
