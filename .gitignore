@@ -1,0 +1,6 @@
+creator_status_signed.txt
+creator_status_contacted.txt
+creator_status_planned.txt
+settings.txt
+__pycache__/
+build/
