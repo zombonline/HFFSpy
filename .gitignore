@@ -5,3 +5,4 @@ settings.txt
 __pycache__/
 build/
 dist/
+chromedriver.exe
