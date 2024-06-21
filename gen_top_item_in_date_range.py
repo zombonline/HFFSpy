@@ -2,9 +2,9 @@ from datetime import date
 import xlsxwriter
 import main_functions
 import os
-import queue
+
+
 def output_to_excel(level_list, model_list):
-    
     workbook = xlsxwriter.Workbook('UGCOfWorkshopMonth.xlsx')
     worksheet = workbook.add_worksheet()
     format_dict = {

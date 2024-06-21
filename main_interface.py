@@ -85,7 +85,7 @@ def set_up_scanning_page():
             back_button = ctk.CTkButton(loading_canvas, text="Back", command=lambda: load_page("Home"))
             back_button.pack()
     app.after(100, update_progress)
-def set_up_top_100_workshops_page():
+def set_up_most_played_workshop_games_page():
     # Create the total UGC count frame
     total_UGC_count_frame = ctk.CTkFrame(main_frame)
     total_UGC_count_frame.pack(expand=True, fill="both")
@@ -110,7 +110,7 @@ def set_up_top_100_workshops_page():
         app.update()
     scan_total_UGC_count_button = ctk.CTkButton(total_UGC_count_canvas, text="Scan Total UGC Count", command=lambda: scan_total_UGC_count_button_click())
     scan_total_UGC_count_button.pack()
-def set_up_total_chinese_count_page():
+def set_up_total_items_in_date_range_page():
     # Create the total Chinese count frame
     total_chinese_count_frame = ctk.CTkFrame(main_frame)
     total_chinese_count_frame.pack(expand=True, fill="both")
@@ -149,7 +149,7 @@ def set_up_total_chinese_count_page():
         app.update()
     scrape_page_button = ctk.CTkButton(total_chinese_count_canvas, text="Scan", command=lambda: scan_total_chinese_count_button_click(date_range_start_input.get(), date_range_end_input.get()))
     scrape_page_button.pack(pady=10)
-def set_up_top_ugc_of_workshop_month_page():
+def set_up_top_items_in_date_range_page():
     #This search may require a user to be logged in depending on settings so a check is made here.
     #If ratings are enabled and user is not logged in, the user is redirected to the steam login page.
     if main_functions.get_setting_value("ratings_levels") == 1 or main_functions.get_setting_value("ratings_models") == 1:
@@ -375,12 +375,12 @@ def set_up_steam_login_page():
     # Create the username input
     username_label = ctk.CTkLabel(steam_login_canvas, text="Username", text_color='black')
     username_label.pack()
-    username_input = ctk.CTkEntry(steam_login_canvas, textvariable=username_input_var, text_color='black')
+    username_input = ctk.CTkEntry(steam_login_canvas, textvariable=username_input_var, text_color='white')
     username_input.pack()
     # Create the password input
     password_label = ctk.CTkLabel(steam_login_canvas, text="Password", text_color='black')
     password_label.pack()
-    password_input = ctk.CTkEntry(steam_login_canvas, show="*", textvariable=password_input_var, text_color='black')
+    password_input = ctk.CTkEntry(steam_login_canvas, show="*", textvariable=password_input_var, text_color='white')
     password_input.pack()
     # Create the login button
     login_button = ctk.CTkButton(steam_login_canvas, text="Login", command=lambda: login_button_click())
@@ -398,7 +398,7 @@ def set_up_steam_login_page():
             # Create the verify code input
             verify_code_label = ctk.CTkLabel(steam_login_canvas, text="Verify Code", text_color='black')
             verify_code_label.pack()
-            verify_code_input = ctk.CTkEntry(steam_login_canvas, textvariable=verify_code_input_var, text_color='black')
+            verify_code_input = ctk.CTkEntry(steam_login_canvas, textvariable=verify_code_input_var, text_color='white')
             verify_code_input.pack()
             # Create the verify code button
             def verify_code_button_click():
@@ -466,11 +466,11 @@ def load_page(page):
     if page == "Home":
         set_up_home_page()
     elif page == "Total UGC Count":
-        set_up_top_100_workshops_page()
+        set_up_most_played_workshop_games_page()
     elif page == "Total Chinese Count":
-        set_up_total_chinese_count_page()
+        set_up_total_items_in_date_range_page()
     elif page == "Top Monthly Workshop Items":
-        set_up_top_ugc_of_workshop_month_page()
+        set_up_top_items_in_date_range_page()
     elif page == "Scanning":
         set_up_scanning_page()
     elif page == "Settings":

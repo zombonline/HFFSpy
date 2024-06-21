@@ -25,10 +25,6 @@ def populate_user_lists():
     with open("creator_status_planned.txt", "r") as creator_status_file:
         planned_users = [int(line.strip()) for line in creator_status_file.readlines()]
 
-    print("signed", signed_users)
-    print("contacted",contacted_users)
-    print("planned", planned_users)
-
 def get_creator_status(creator_id):
     if creator_id in signed_users:
         return "Signed"
@@ -96,7 +92,12 @@ def get_total_items():
         print("Could not find expected number of items.")
         return 0
     total_items_string = driver.find_element(By.CSS_SELECTOR, 'div.workshopBrowsePagingInfo').text
-    total_items = int(total_items_string.split('of ')[1].split(' ')[0].replace(',', ''))
+    if 'entries' in total_items_string:
+        #Showing 1-30 of 5,187 entries
+        total_items = int(total_items_string.split('of ')[1].split(' entries')[0].replace(',', ''))
+    elif '项条目' in total_items_string:
+        #正在显示第 1 - 30 项，共 7,219 项条目
+        total_items = int(total_items_string.split('共 ')[1].split(' 项条目')[0].replace(',', ''))
     return total_items
 
 def get_item_ids(amount = None):
@@ -137,7 +138,7 @@ def get_item_and_user_data(item_id):
         print(f"Item ID {item_id} has no creator data.")
         return None, None
 
-def create_workshop_item(item_id):
+def create_workshop_item(item_id, ignore_rating = False, ignore_comments = False, ignore_visitors = False, ignore_contribution_count = False, ignore_followers = False):
     workshop_item, user = get_item_and_user_data(item_id)
     if workshop_item is None or user is None:
         return WorkshopItem(f"No data returned from {item_id}, gather it manually here https://steamcommunity.com/sharedfiles/filedetails/?id={item_id}", None, None, None, None, None, None, None, None, None, None, None, None, None, None)
@@ -193,9 +194,14 @@ def get_item_creator_contribution_count(creator_id):
     except TimeoutException:
         print("Could not find expected number of items.")
         return 0
-    contribution_count_string = driver.find_element(By.CLASS_NAME, 'workshopBrowsePagingInfo').text
-    contribution_count_string = int(contribution_count_string.split('of ')[1].split(' entries')[0].replace(',', ''))
-    return contribution_count_string
+    contribution_count = driver.find_element(By.CLASS_NAME, 'workshopBrowsePagingInfo').text
+    if 'entries' in contribution_count:
+        #Showing 1-2 of 2 entries
+        contribution_count = int(contribution_count.split('of ')[1].split(' entries')[0].replace(',', ''))
+    elif '项条目' in contribution_count:
+        #正在显示第 1 - 2 项，共 2 项条目
+        contribution_count = int(contribution_count.split('共 ')[1].split(' 项条目')[0].replace(',', ''))
+    return contribution_count
 
 def get_item_creator_followers_count(creator_id):
     if driver.current_url != f"https://steamcommunity.com/profiles/{creator_id}/myworkshopfiles/?appid=477160":
@@ -301,7 +307,13 @@ def get_item_comment_count(workshop_item):
         driver.get(item_url)
     try:
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "comments")))
-        comment_count = driver.find_element(By.CLASS_NAME, "comments").text.split('Comments')[1]
+        comment_count = driver.find_element(By.CLASS_NAME, "comments").text
+        if 'Comments' in comment_count:
+            #0 Comments
+            comment_count = comment_count.split('Comments')[0]
+        elif '条留言' in comment_count:
+            #0 条留言
+            comment_count = comment_count.split('条留言')[0]
     except TimeoutException:
         comment_count = "N/A"
     return comment_count
@@ -361,14 +373,11 @@ def get_game_workshop_count(gameAppID):
     link = "https://steamcommunity.com/workshop/browse/?appid=" + gameAppID
     driver.get(link)
     gameWorkShopItemCount = "N/A"
-    if gameAppID in driver.current_url:
-        try:
-            wait.until(lambda driver: len(driver.find_elements(By.CSS_SELECTOR, 'div.workshopBrowsePagingInfo')) > 0)
-            itemCountText = driver.find_element(By.CSS_SELECTOR, 'div.workshopBrowsePagingInfo').text
-            gameWorkShopItemCount = int(itemCountText.split('of ')[1].split(' entries')[0].replace(',', ''))
-        except TimeoutException:
-            print("Timed out waiting for page to load")
-            return
+    try:
+        gameWorkShopItemCount = get_total_items()
+    except TimeoutException:
+        print("Timed out waiting for page to load")
+        return
     return gameWorkShopItemCount
 
 def apply_setting_value(setting_name, setting_value):
@@ -448,14 +457,14 @@ def check_steam_user_logged_in():
 
 def check_for_settings_file():
     if not os.path.exists("settings.txt"):
-        setting_file = open("settings.txt", "w")
-        setting_file.write("display_browser:0\n")
-        setting_file.write("ratings_levels:0\n")
-        setting_file.write("comments_levels:0\n")
-        setting_file.write("ratings_models:0\n")
-        setting_file.write("comments_models:0\n")
-        setting_file.write("steam_api_key:\n")
-        setting_file.close()
+        settings_file = open("settings.txt", "w")
+        settings_file.write("display_browser:0\n")
+        settings_file.write("ratings_levels:0\n")
+        settings_file.write("comments_levels:0\n")
+        settings_file.write("ratings_models:0\n")
+        settings_file.write("comments_models:0\n")
+        settings_file.write("steam_api_key:\n")
+        settings_file.close()
 def check_for_creator_status_file():
     if not os.path.exists("creator_status_contacted.txt"):
         creator_status_file = open("creator_status_contacted.txt", "w")
