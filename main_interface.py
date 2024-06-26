@@ -5,7 +5,6 @@ import os
 from datetime import datetime, timedelta
 import gen_top_item_in_date_range
 import gen_most_played_workshop_games
-import gen_total_items_in_date_range
 import main_functions
 import threading
 import queue
@@ -100,6 +99,14 @@ def set_up_most_played_workshop_games_page():
     back_button = ctk.CTkButton(total_UGC_count_canvas, text="Back", command=lambda: load_page("Home"))
     back_button.pack(pady=10)
     # Create the scan total UGC count button
+    def scan_total_UGC_count_button_click():
+        global active_thread
+        active_thread = threading.Thread(target=gen_most_played_workshop_games.scan, args=(progress_queue,))
+        active_thread.start()
+        load_page("Scanning")
+        app.update()
+    scan_total_UGC_count_button = ctk.CTkButton(total_UGC_count_canvas, text="Scan Total UGC Count", command=lambda: scan_total_UGC_count_button_click())
+    scan_total_UGC_count_button.pack()
 
 def set_up_top_items_in_date_range_page():
     # Create the top monthly workshop items frame
