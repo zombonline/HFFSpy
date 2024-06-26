@@ -462,10 +462,6 @@ def check_for_settings_file():
     if not os.path.exists("settings.txt"):
         settings_file = open("settings.txt", "w")
         settings_file.write("display_browser:0\n")
-        settings_file.write("ratings_levels:0\n")
-        settings_file.write("comments_levels:0\n")
-        settings_file.write("ratings_models:0\n")
-        settings_file.write("comments_models:0\n")
         settings_file.write("steam_api_key:\n")
         settings_file.close()
 def check_for_creator_status_file():

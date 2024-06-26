@@ -9,7 +9,6 @@ import main_functions
 import threading
 import queue
 import sys
-import time
 
 def set_up_header(account_name):
     for widget in header_frame.winfo_children():
@@ -24,16 +23,22 @@ def set_up_header(account_name):
         header_label = ctk.CTkLabel(header_canvas, text="Not logged in", text_color='black', font=("Arial", 18))
     header_label.pack()
 
+def set_up_page_canvas(page_name, page_info, include_home_button):
+    new_canvas = ctk.CTkCanvas(main_frame, bg='grey')
+    new_canvas.pack(expand=True, fill="both")
+    new_title = ctk.CTkLabel(new_canvas, text=page_name, text_color='black', font=("Arial", 24))
+    new_title.pack(pady=5)
+    if page_info != None:
+        new_info = ctk.CTkLabel(new_canvas, text=page_info, wraplength = app.winfo_width()-10, text_color='black')
+        new_info.pack(pady=5)
+    if include_home_button:
+        # Create the back button
+        home_button = ctk.CTkButton(new_canvas, text="Back", command=lambda: load_page("Home"))
+        home_button.pack(pady=5)
+    return new_canvas
+
 def set_up_home_page():
-    # Create the home frame
-    home_frame = ctk.CTkFrame(main_frame)
-    home_frame.pack(expand=True, fill="both")
-    # Create the home canvas
-    home_canvas = ctk.CTkCanvas(home_frame)
-    home_canvas.pack(expand=True, fill="both")
-    # Create the title
-    title_label = ctk.CTkLabel(home_canvas, text="Home", text_color='black', font=("Arial", 24))
-    title_label.pack()
+    home_canvas = set_up_page_canvas("Home", None, False)
     # Create the "Scans" label
     scans_label = ctk.CTkLabel(home_canvas, text="Scans", text_color='black', font=("Arial", 18))
     scans_label.pack(pady=10)
@@ -48,12 +53,21 @@ def set_up_home_page():
     #Create the 'Download Chromdriver here' button
     download_chromedriver_button = ctk.CTkButton(home_canvas, text="Download Chromedriver here", command=lambda: os.system("start https://googlechromelabs.github.io/chrome-for-testing/"))
     download_chromedriver_button.pack(pady=5)
-    settings_button = ctk.CTkButton(home_canvas, text="Settings", command=lambda: load_page("Settings"))
-    settings_button.pack(pady=5)
     creator_button = ctk.CTkButton(home_canvas, text="Creator", command=lambda: load_page("Creator"))
     creator_button.pack(pady=5)
     steam_login_button = ctk.CTkButton(home_canvas, text="Steam Login", command=lambda: load_page("Steam Login"))
     steam_login_button.pack(pady=5)
+    
+    # Create the toggle button for "Display browser"
+    def enable_display_browser():
+        main_functions.apply_setting_value("display_browser", display_browser_var.get())
+        warning_label.configure(text="Please restart the program for changes to take effect")
+    display_browser_var = tk.IntVar()
+    display_browser_var.set(main_functions.get_setting_value("display_browser"))
+    display_browser_checkbox = ctk.CTkCheckBox(home_canvas, text="Display browser", variable=display_browser_var, command=lambda: enable_display_browser())
+    display_browser_checkbox.pack()
+    warning_label = ctk.CTkLabel(home_canvas, text="", text_color='red')
+    warning_label.pack()
 def set_up_scanning_page():
     # Create the loading frame
     loading_frame = ctk.CTkFrame(main_frame)
@@ -83,21 +97,8 @@ def set_up_scanning_page():
             back_button.pack()
     app.after(100, update_progress)
 def set_up_most_played_workshop_games_page():
-    # Create the total UGC count frame
-    total_UGC_count_frame = ctk.CTkFrame(main_frame)
-    total_UGC_count_frame.pack(expand=True, fill="both")
-    # Create the total UGC count canvas
-    total_UGC_count_canvas = ctk.CTkCanvas(total_UGC_count_frame)
-    total_UGC_count_canvas.pack(expand=True, fill="both")
-    # Create the title
-    title_label = ctk.CTkLabel(total_UGC_count_canvas, text="Top 100 Games (UGC Count)", text_color='black', font=("Arial", 24))
-    title_label.pack()
-    # Create the info label
-    info_label = ctk.CTkLabel(total_UGC_count_canvas, text="This will scan the current top 100 most played workshop games and display the total UGC count.", wraplength = 200, text_color='black')
-    info_label.pack()
-    # Create the back button
-    back_button = ctk.CTkButton(total_UGC_count_canvas, text="Back", command=lambda: load_page("Home"))
-    back_button.pack(pady=10)
+    total_UGC_count_info = "This will scan the current top 100 most played workshop games and display the total UGC count."
+    total_UGC_count_canvas = set_up_page_canvas("Total UGC Count", total_UGC_count_info, True)
     # Create the scan total UGC count button
     def scan_total_UGC_count_button_click():
         global active_thread
@@ -107,20 +108,12 @@ def set_up_most_played_workshop_games_page():
         app.update()
     scan_total_UGC_count_button = ctk.CTkButton(total_UGC_count_canvas, text="Scan Total UGC Count", command=lambda: scan_total_UGC_count_button_click())
     scan_total_UGC_count_button.pack()
-
 def set_up_top_items_in_date_range_page():
-    # Create the top monthly workshop items frame
-    top_monthly_workshop_items_frame = ctk.CTkCanvas(main_frame, bg='grey')
-    top_monthly_workshop_items_frame.pack(expand=True, fill="both")
-    # Create the title
-    title_label = ctk.CTkLabel(top_monthly_workshop_items_frame, text="Top Rated HFF Workshop items", text_color='black', font=("Arial", 24))
-    title_label.pack(pady=10)
-    # Create the info label
-    info_label = ctk.CTkLabel(top_monthly_workshop_items_frame, text="This will scan the specified amount of items on the workshop within the provided date range. They will be listed by 'Most Popular' on steam.", wraplength = 200, text_color='black')
-    info_label.pack()
-    # Create the back button
-    back_button = ctk.CTkButton(top_monthly_workshop_items_frame, text="Back", command=lambda: load_page("Home"))
-    back_button.pack(pady=10)
+    hff_workshop_scan_info = "You can use this page to scan the Human Fall Flat Workshop! Set a custom date range, max amount of items to return (blank will return all of them), and sort by 'Most Popular' or 'Most Recent'. You can also choose to seperate levels and models in to two different sheets. Select what information you want to include in the excel file, any orange items will increase the scanning time, and any bold items require a valid log in. When the scan is complete you will be given an excel file."
+    hff_scan_canvas = set_up_page_canvas("HFF Scan", hff_workshop_scan_info, True)
+    # Create the scan presets frame
+    scan_presets_frame = ctk.CTkFrame(hff_scan_canvas,fg_color='transparent')
+    scan_presets_frame.pack(pady=10)
     # Create the weekly scan button
     def weekly_settings():
         #Get the last full week
@@ -137,8 +130,8 @@ def set_up_top_items_in_date_range_page():
                 excel_outputs[item][1].set(True)
             else:
                 excel_outputs[item][1].set(False)
-    weekly_settings_button = ctk.CTkButton(top_monthly_workshop_items_frame, text="Weekly Scan", command=lambda: weekly_settings())
-    weekly_settings_button.pack(pady=10)
+    weekly_settings_button = ctk.CTkButton(scan_presets_frame, text="Weekly Scan", command=lambda: weekly_settings())
+    weekly_settings_button.grid(row=0, column=0, padx=5)
     # Create the monthly scan button
     def monthly_settings():
         # Get the last full month
@@ -156,11 +149,11 @@ def set_up_top_items_in_date_range_page():
                 excel_outputs[item][1].set(True)
             else:
                 excel_outputs[item][1].set(False)
-    monthly_settings_button = ctk.CTkButton(top_monthly_workshop_items_frame, text="Monthly Scan", command=lambda: monthly_settings())
-    monthly_settings_button.pack(pady=10)
+    monthly_settings_button = ctk.CTkButton(scan_presets_frame, text="Monthly Scan", command=lambda: monthly_settings())
+    monthly_settings_button.grid(row=0, column=1, padx=5)
 
     # Create the options frame
-    options_frame = ctk.CTkFrame(top_monthly_workshop_items_frame,fg_color='transparent')
+    options_frame = ctk.CTkFrame(hff_scan_canvas,fg_color='transparent')
     options_frame.pack(pady=10)
     # Create the general options frame
     general_options_frame = ctk.CTkFrame(options_frame,fg_color='transparent')
@@ -230,13 +223,20 @@ def set_up_top_items_in_date_range_page():
         'Visitors': ['visitors', tk.BooleanVar()]
     }
     intensive_outputs = ['Rating', 'Comment Count', 'Contribution Count', 'Followers', 'Visitors']
+    login_required_outputs = ['Rating', 'Visitors']
     for item in excel_outputs:
         excel_outputs[item][1].set(True)
         output_color = 'white'
+        output_font = ("Roboto", 12)
         if item in intensive_outputs:
             excel_outputs[item][1].set(False)
             output_color = 'orange'
-        checkbox = ctk.CTkCheckBox(include_in_excel_frame, text=item, variable=excel_outputs[item][1], text_color=output_color)
+        if item in login_required_outputs:
+            excel_outputs[item][1].set(False)
+            output_font = ("Roboto", 12, "bold")
+            
+            
+        checkbox = ctk.CTkCheckBox(include_in_excel_frame, text=item, variable=excel_outputs[item][1], text_color=output_color, font=output_font)
         checkbox.pack(anchor="w", pady=2)
 
     def scan_top_ugc_of_workshop_month_button_click():
@@ -256,81 +256,12 @@ def set_up_top_items_in_date_range_page():
         load_page("Scanning")
         app.update()
     
-    scan_top_ugc_of_workshop_month_button = ctk.CTkButton(top_monthly_workshop_items_frame, text="Scan", command=lambda: scan_top_ugc_of_workshop_month_button_click())
+    scan_top_ugc_of_workshop_month_button = ctk.CTkButton(hff_scan_canvas, text="Scan", command=lambda: scan_top_ugc_of_workshop_month_button_click())
     scan_top_ugc_of_workshop_month_button.pack()
-def set_up_settings_page():
-    # Create the settings frame
-    settings_frame = ctk.CTkFrame(main_frame)
-    settings_frame.pack(expand=True, fill="both")
-    # Create the settings canvas
-    settings_canvas = ctk.CTkCanvas(settings_frame)
-    settings_canvas.pack(expand=True, fill="both")
-    # Create the title
-    title_label = ctk.CTkLabel(settings_canvas, text="Settings", text_color='black', font=("Arial", 24))
-    title_label.pack()
-    # Create the back button
-    back_button = ctk.CTkButton(settings_canvas, text="Back", command=lambda: load_page("Home"))
-    back_button.pack()
-    # Create the toggle button for "Display browser"
-    display_browser_var = tk.IntVar()
-    display_browser_var.set(main_functions.get_setting_value("display_browser"))
-    display_browser_checkbox = tk.Checkbutton(settings_canvas, text="Display browser", variable=display_browser_var)
-    display_browser_checkbox.pack()
-    # Create the warning label
-    warning_label = ctk.CTkLabel(settings_canvas, text="Please restart the tool to apply this setting.", text_color='red')
-    warning_label.pack()
-    #Create the label "Scan for comments"
-    scan_for_comments_label = ctk.CTkLabel(settings_canvas, text="Scan for comments", text_color='black')
-    scan_for_comments_label.pack()
-    # Create the toggle button for "Scan for comments for levels"
-    scan_for_comments_levels_var = tk.IntVar()
-    scan_for_comments_levels_var.set(main_functions.get_setting_value("comments_levels"))
-    scan_for_comments_levels_checkbox = tk.Checkbutton(settings_canvas, text="Levels", variable=scan_for_comments_levels_var)
-    scan_for_comments_levels_checkbox.pack()
-    # Create the toggle button for "Scan for comments for models"
-    scan_for_comments_models_var = tk.IntVar()
-    scan_for_comments_models_var.set(main_functions.get_setting_value("comments_models"))
-    scan_for_comments_models_checkbox = tk.Checkbutton(settings_canvas, text="Models", variable=scan_for_comments_models_var)
-    scan_for_comments_models_checkbox.pack()
-    # Create warning label
-    warning_label = ctk.CTkLabel(settings_canvas, text="Warning: As the python steam api does not track comment counts, this is done via the browser, which will increase scanning time significantly.", wraplength=200, text_color='red')
-    warning_label.pack()
-    #Create the label "Scan for ratings"
-    scan_for_ratings_label = ctk.CTkLabel(settings_canvas, text="Scan for ratings", text_color='black')
-    scan_for_ratings_label.pack()
-    # Create the toggle button for "Scan for ratings"
-    scan_for_ratings_levels_var = tk.IntVar()
-    scan_for_ratings_levels_var.set(main_functions.get_setting_value("ratings_levels"))
-    scan_for_ratings_levels_checkbox = tk.Checkbutton(settings_canvas, text="Levels", variable=scan_for_ratings_levels_var)
-    scan_for_ratings_levels_checkbox.pack()
-    # Create the toggle button for "Scan for ratings for models"
-    scan_for_ratings_models_var = tk.IntVar()
-    scan_for_ratings_models_var.set(main_functions.get_setting_value("ratings_models"))
-    scan_for_ratings_models_checkbox = tk.Checkbutton(settings_canvas, text="Models", variable=scan_for_ratings_models_var)
-    scan_for_ratings_models_checkbox.pack()
-    # Create warning label
-    warning_label = ctk.CTkLabel(settings_canvas, text="Warning: Ratings are also tracked via the browser, increasing scanning time. They also require a valid log in.", wraplength=200, text_color='red')
-    warning_label.pack()
-    # Create the apply all settings button
-    def apply_all_settings():
-        main_functions.apply_setting_value("display_browser", display_browser_var.get())
-        main_functions.apply_setting_value("ratings_levels", scan_for_ratings_levels_var.get())
-        main_functions.apply_setting_value("ratings_models", scan_for_ratings_models_var.get())
-        main_functions.apply_setting_value("comments_levels", scan_for_comments_levels_var.get())
-        main_functions.apply_setting_value("comments_models", scan_for_comments_models_var.get())
-    apply_all_settings_button = ctk.CTkButton(settings_canvas, text="Apply All Settings", command=lambda: apply_all_settings())
-    apply_all_settings_button.pack()
 def set_up_creator_page():
     current_status = "signed"
-    # Create the creator frame
-    creator_frame = ctk.CTkFrame(main_frame)
-    creator_frame.pack(expand=True, fill="both")
-    # Create the creator canvas
-    creator_canvas = ctk.CTkCanvas(creator_frame)
-    creator_canvas.pack(expand=True, fill="both")
-    # Create the title
-    title_label = ctk.CTkLabel(creator_canvas, text="Creator", text_color='black', font=("Arial", 24))
-    title_label.pack()
+    creator_info = "You can note down known creators here, any noted creators will be hilighted in the excel files generated by this tool."
+    creator_canvas = set_up_page_canvas("Creator", creator_info, True)
      # Create the tab buttons frame
     tab_buttons_frame = ctk.CTkFrame(creator_canvas)
     tab_buttons_frame.pack()
@@ -412,24 +343,11 @@ def set_up_creator_page():
         populate_creator_status_listbox(current_status)
     remove_creator_button = ctk.CTkButton(creator_canvas, text="Remove Creator", command=lambda: remove_creator_button_click())
     remove_creator_button.pack()
-
-    
-    # Create the back button
-    back_button = ctk.CTkButton(creator_canvas, text="Back", command=lambda: load_page("Home"))
-    back_button.pack()
 def set_up_steam_login_page():
-    # Create the steam login frame
-    steam_login_frame = ctk.CTkFrame(main_frame)
-    steam_login_frame.pack(expand=True, fill="both")
-    # Create the steam login canvas
-    steam_login_canvas = ctk.CTkCanvas(steam_login_frame)
-    steam_login_canvas.pack(expand=True, fill="both")
-    # Create the title
-    title_label = ctk.CTkLabel(steam_login_canvas, text="Steam Login", text_color='black', font=("Arial", 24))
-    title_label.pack()
-    # Create the back button
-    back_button = ctk.CTkButton(steam_login_canvas, text="Back", command=lambda: load_page("Home"))
-    back_button.pack()
+    steam_login_info = """Use this page to log in to a steam account that has permission to view extra information on Human Fall Flat workshop items. This is required for a couple of bits of information such as ratings and visitor count etc. 
+    
+    Please ensure the steam account uses English or Simplified Chinese as it's language to allow scans to function correctly."""
+    steam_login_canvas = set_up_page_canvas("Steam Login", steam_login_info, True)
     # Create the username input
     username_label = ctk.CTkLabel(steam_login_canvas, text="Username", text_color='black')
     username_label.pack()
@@ -477,34 +395,14 @@ def set_up_steam_login_page():
         else:
             print("Error: Unknown state")   
 def set_up_chrome_driver_page():
-    # Create the chrome driver frame
-    chrome_driver_frame = ctk.CTkFrame(main_frame)
-    chrome_driver_frame.pack(expand=True, fill="both")
-    # Create the chrome driver canvas
-    chrome_driver_canvas = ctk.CTkCanvas(chrome_driver_frame)
-    chrome_driver_canvas.pack(expand=True, fill="both")
-    # Create the title
-    title_label = ctk.CTkLabel(chrome_driver_canvas, text="Chrome Driver", text_color='black', font=("Arial", 24))
-    title_label.pack()
-    # Create the info label
-    info_label = ctk.CTkLabel(chrome_driver_canvas, text="There may have been an error with your Chrome Driver. Please ensure you have a chrome driver installed in the program folder and the version matches your current installation of Google Chrome. Once done, please restart the program.", wraplength = 200, text_color='black')
-    info_label.pack()
+    chrome_driver_info = "There may have been an error with locating your Chrome Driver. Please ensure you have a chrome driver installed in the program folder and the version matches your current installation of Google Chrome. Once done, please restart the program."
+    chrome_driver_canvas = set_up_page_canvas("Chrome Driver", chrome_driver_info, False)
     # Create the download button
     download_button = ctk.CTkButton(chrome_driver_canvas, text="Download", command=lambda: os.system("start https://googlechromelabs.github.io/chrome-for-testing/"))
     download_button.pack()
 def set_up_add_api_key_page():
-    # Create the add api key frame
-    add_api_key_frame = ctk.CTkFrame(main_frame)
-    add_api_key_frame.pack(expand=True, fill="both")
-    # Create the add api key canvas
-    add_api_key_canvas = ctk.CTkCanvas(add_api_key_frame)
-    add_api_key_canvas.pack(expand=True, fill="both")
-    # Create the title
-    title_label = ctk.CTkLabel(add_api_key_canvas, text="INVALID API KEY", text_color='black', font=("Arial", 24))
-    title_label.pack()
-    # Create the info label
-    info_label = ctk.CTkLabel(add_api_key_canvas, text="Please enter a valid steam API key", wraplength = 200, text_color='black')
-    info_label.pack()
+    api_key_info = "Please enter a valid steam API key."
+    add_api_key_canvas = set_up_page_canvas("Add API Key", api_key_info, False)
     # Create the api key input
     api_key_input = ctk.CTkEntry(add_api_key_canvas, text_color='white')
     api_key_input.pack()
@@ -564,7 +462,7 @@ app.title("HFFSpy")
 icon_path = get_resource_path("icon.ico")
 app.iconbitmap(icon_path)
 app.geometry("600x750")
-app.minsize(600, 500)
+app.minsize(600, 750)
 
 # Create the header frame
 header_frame = ctk.CTkFrame(app, height=65)
