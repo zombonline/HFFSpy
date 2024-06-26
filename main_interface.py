@@ -2,7 +2,7 @@ import tkinter as tk
 import customtkinter as ctk
 from tkcalendar import DateEntry
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import gen_top_item_in_date_range
 import gen_most_played_workshop_games
 import gen_total_items_in_date_range
@@ -41,8 +41,6 @@ def set_up_home_page():
     #Navigation Buttons
     total_UGC_count_button = ctk.CTkButton(home_canvas, text="Top 100 Games (UGC Count)", command=lambda: load_page("Total UGC Count"))   
     total_UGC_count_button.pack(pady=5)
-    total_chinese_count_button = ctk.CTkButton(home_canvas, text="All HFF Workshop Items", command=lambda: load_page("Total Chinese Count"))
-    total_chinese_count_button.pack(pady=5)
     top_ugc_of_workshop_month_button = ctk.CTkButton(home_canvas, text="Top Rated HFF Workshop items", command=lambda: load_page("Top Monthly Workshop Items"))
     top_ugc_of_workshop_month_button.pack(pady=5)
     # Create the "Other" label
@@ -102,103 +100,156 @@ def set_up_most_played_workshop_games_page():
     back_button = ctk.CTkButton(total_UGC_count_canvas, text="Back", command=lambda: load_page("Home"))
     back_button.pack(pady=10)
     # Create the scan total UGC count button
-    def scan_total_UGC_count_button_click():
-        global active_thread
-        active_thread = threading.Thread(target=gen_most_played_workshop_games.scan, args=(progress_queue,))
-        active_thread.start()
-        load_page("Scanning")
-        app.update()
-    scan_total_UGC_count_button = ctk.CTkButton(total_UGC_count_canvas, text="Scan Total UGC Count", command=lambda: scan_total_UGC_count_button_click())
-    scan_total_UGC_count_button.pack()
-def set_up_total_items_in_date_range_page():
-    # Create the total Chinese count frame
-    total_chinese_count_frame = ctk.CTkFrame(main_frame)
-    total_chinese_count_frame.pack(expand=True, fill="both")
-    # Create the total Chinese count canvas
-    total_chinese_count_canvas = ctk.CTkCanvas(total_chinese_count_frame)
-    total_chinese_count_canvas.pack(expand=True, fill="both")
+
+def set_up_top_items_in_date_range_page():
+    # Create the top monthly workshop items frame
+    top_monthly_workshop_items_frame = ctk.CTkCanvas(main_frame, bg='grey')
+    top_monthly_workshop_items_frame.pack(expand=True, fill="both")
     # Create the title
-    title_label = ctk.CTkLabel(total_chinese_count_canvas, text="All HFF Workshop Items", text_color='black', font=("Arial", 24))
+    title_label = ctk.CTkLabel(top_monthly_workshop_items_frame, text="Top Rated HFF Workshop items", text_color='black', font=("Arial", 24))
     title_label.pack(pady=10)
     # Create the info label
-    info_label = ctk.CTkLabel(total_chinese_count_canvas, text="This will scan all items on the workshop within the provided date range. They will be listed chronologically.", wraplength = 200, text_color='black')
+    info_label = ctk.CTkLabel(top_monthly_workshop_items_frame, text="This will scan the specified amount of items on the workshop within the provided date range. They will be listed by 'Most Popular' on steam.", wraplength = 200, text_color='black')
     info_label.pack()
     # Create the back button
-    back_button = ctk.CTkButton(total_chinese_count_canvas, text="Back", command=lambda: load_page("Home"))
-    back_button.pack(pady=10)    
-    # Create the date range frame
-    date_range_frame = ctk.CTkFrame(total_chinese_count_canvas)
-    date_range_frame.pack(pady=10)
-    # Create the date range start input
-    date_range_start_label = ctk.CTkLabel(date_range_frame, text="From:", text_color='white')
-    date_range_start_label.grid(row=0, column=0, padx=10)
-    date_range_start = DateEntry(date_range_frame, textvariable=date_range_start_input, date_pattern="yyyy-mm-dd")
-    date_range_start.grid(row=1, column=0, padx=10, pady=10)
-    # Create the date range end input
-    date_range_end_label = ctk.CTkLabel(date_range_frame, text="Until:", text_color='white')
-    date_range_end_label.grid(row=0, column=1, padx=10)
-    date_range_end = DateEntry(date_range_frame, textvariable=date_range_end_input, date_pattern="yyyy-mm-dd")
-    date_range_end.grid(row=1, column=1, padx=10, pady=10)
-    # Create the 'scrape page' button
-    def scan_total_chinese_count_button_click(start_date, end_date):
-        global active_thread
-        global progress_queue
-        active_thread = threading.Thread(target=gen_total_items_in_date_range.scan, args=(get_timestamp(start_date), get_timestamp(end_date, True), progress_queue))
-        active_thread.start()
-        load_page("Scanning")
-        app.update()
-    scrape_page_button = ctk.CTkButton(total_chinese_count_canvas, text="Scan", command=lambda: scan_total_chinese_count_button_click(date_range_start_input.get(), date_range_end_input.get()))
-    scrape_page_button.pack(pady=10)
-def set_up_top_items_in_date_range_page():
-    #This search may require a user to be logged in depending on settings so a check is made here.
-    #If ratings are enabled and user is not logged in, the user is redirected to the steam login page.
-    if main_functions.get_setting_value("ratings_levels") == 1 or main_functions.get_setting_value("ratings_models") == 1:
-        if not main_functions.check_steam_user_logged_in():
-            load_page("Steam Login")
-            return
-    # Create the top monthly workshop items frame
-    top_monthly_workshop_items_frame = ctk.CTkFrame(main_frame)
-    top_monthly_workshop_items_frame.pack(expand=True, fill="both")
-    # Create the top monthly workshop items canvas
-    top_monthly_workshop_items_canvas = ctk.CTkCanvas(top_monthly_workshop_items_frame)
-    top_monthly_workshop_items_canvas.pack(expand=True, fill="both")
-    # Create the title
-    title_label = ctk.CTkLabel(top_monthly_workshop_items_canvas, text="Top Rated HFF Workshop items", text_color='black', font=("Arial", 24))
-    title_label.pack()
-    # Create the info label
-    info_label = ctk.CTkLabel(top_monthly_workshop_items_canvas, text="This will scan the specified amount of items on the workshop within the provided date range. They will be listed by 'Most Popular' on steam.", wraplength = 200, text_color='black')
-    info_label.pack()
-    # Create the back button
-    back_button = ctk.CTkButton(top_monthly_workshop_items_canvas, text="Back", command=lambda: load_page("Home"))
+    back_button = ctk.CTkButton(top_monthly_workshop_items_frame, text="Back", command=lambda: load_page("Home"))
     back_button.pack(pady=10)
-    # Create the date range frame
-    date_range_frame = ctk.CTkFrame(top_monthly_workshop_items_canvas)
-    date_range_frame.pack(pady=10)
+    # Create the weekly scan button
+    def weekly_settings():
+        #Get the last full week
+        start = datetime.now() - timedelta(days=datetime.now().weekday() + 7)
+        end = datetime.now() - timedelta(days=datetime.now().weekday() + 1)
+        date_range_start_var.set(start.date())
+        date_range_end_var.set(end.date())
+        amount_of_items_input.delete(0, "end")
+        sort_by_dropdown.set("Most Recent")
+        seperate_levels_and_models_var.set(False)
+        outputs = ['Item Name', 'Creator Name', 'Item Type','Country', 'Language', 'Date Posted']
+        for item in excel_outputs:
+            if item in outputs:
+                excel_outputs[item][1].set(True)
+            else:
+                excel_outputs[item][1].set(False)
+    weekly_settings_button = ctk.CTkButton(top_monthly_workshop_items_frame, text="Weekly Scan", command=lambda: weekly_settings())
+    weekly_settings_button.pack(pady=10)
+    # Create the monthly scan button
+    def monthly_settings():
+        # Get the last full month
+        start = (datetime.now().replace(day=1) - timedelta(days=1)).replace(day=1)
+        end = datetime.now().replace(day=1) - timedelta(days=1)
+        date_range_start_var.set(start.date())
+        date_range_end_var.set(end.date())
+        amount_of_items_input.delete(0, "end")
+        amount_of_items_input.insert(0, "20")
+        sort_by_dropdown.set("Most Popular")
+        seperate_levels_and_models_var.set(True)
+        outputs = ['Item Name', 'Creator Name', 'Item Type','Country', 'Language', 'Date Posted', 'TUS', 'Rating', 'Comment Count', 'Visitors']
+        for item in excel_outputs:
+            if item in outputs:
+                excel_outputs[item][1].set(True)
+            else:
+                excel_outputs[item][1].set(False)
+    monthly_settings_button = ctk.CTkButton(top_monthly_workshop_items_frame, text="Monthly Scan", command=lambda: monthly_settings())
+    monthly_settings_button.pack(pady=10)
+
+    # Create the options frame
+    options_frame = ctk.CTkFrame(top_monthly_workshop_items_frame,fg_color='transparent')
+    options_frame.pack(pady=10)
+    # Create the general options frame
+    general_options_frame = ctk.CTkFrame(options_frame,fg_color='transparent')
+    general_options_frame.grid(row=0, column=0)
+    # Create the include in excel frame
+    include_in_excel_frame = ctk.CTkFrame(options_frame, fg_color='transparent')
+    include_in_excel_frame.grid(row=0, column=1, padx=10)
+
+
     # Create the date range start input
-    date_range_start_label = ctk.CTkLabel(date_range_frame, text="From:", text_color='white')
-    date_range_start_label.grid(row=0, column=0, padx=10)
-    date_range_start = DateEntry(date_range_frame, textvariable=date_range_start_input, date_pattern="yyyy-mm-dd")
-    date_range_start.grid(row=1, column=0, padx=10, pady=10)
+    date_range_start_label = ctk.CTkLabel(general_options_frame, text="From:", text_color='white')
+    date_range_start_label.pack()
+    # Create the date range start variable
+    date_range_start_var = tk.StringVar()
+    # Create the date range start input
+    date_range_start_input = DateEntry(general_options_frame, textvariable=date_range_start_var, date_pattern="yyyy-mm-dd")
+    date_range_start_input.pack()
     # Create the date range end input
-    date_range_end_label = ctk.CTkLabel(date_range_frame, text="Until:", text_color='white')
-    date_range_end_label.grid(row=0, column=2, padx=10)
-    date_range_end = DateEntry(date_range_frame, textvariable=date_range_end_input, date_pattern="yyyy-mm-dd")
-    date_range_end.grid(row=1, column=2, padx=10, pady=10)
+    date_range_end_label = ctk.CTkLabel(general_options_frame, text="Until:", text_color='white')
+    date_range_end_label.pack()
+    # Create the date range end variable
+    date_range_end_var = tk.StringVar()
+    # Create the date range end input
+    date_range_end_input = DateEntry(general_options_frame, textvariable=date_range_end_var, date_pattern="yyyy-mm-dd")
+    date_range_end_input.pack()
     # Create the amount of items to grab input
-    amount_of_items_label = ctk.CTkLabel(date_range_frame, text="Amount of Items to Grab", text_color='white')
-    amount_of_items_label.grid(row=3, column=1, padx=10)
-    amount_of_items_input = ctk.CTkEntry(date_range_frame)
+    amount_of_items_label = ctk.CTkLabel(general_options_frame, text="Amount of Items to Grab", text_color='white')
+    amount_of_items_label.pack()
+    # Create the amount of items input
+    amount_of_items_input = ctk.CTkEntry(general_options_frame)
     amount_of_items_input.insert(0, "20")
-    amount_of_items_input.grid(row=4, column=1, padx=10, pady=10)
-    # Create the scan top ugc of workshop month button
-    def scan_top_ugc_of_workshop_month_button_click(start_date, end_date, amount_of_items):
+    amount_of_items_input.pack()
+    # Create the sort by label
+    sort_by_label = ctk.CTkLabel(general_options_frame, text="Sort by", text_color='white')
+    sort_by_label.pack()
+    # Initialize the variable to hold the selected option
+    sort_by_var = tk.StringVar()
+    # Create the sort by dropdown
+    sort_by_dropdown = ctk.CTkOptionMenu(general_options_frame, variable=sort_by_var, values=["Most Popular", "Most Recent"])
+    sort_by_dropdown.pack()
+    # Set the default value
+    sort_by_var.set("Most Popular")
+    # Create the seperate levels and models checkbox
+    seperate_levels_and_models_var = tk.BooleanVar()
+    seperate_levels_and_models_var.set(True)
+    seperate_levels_and_models_checkbox = ctk.CTkCheckBox(general_options_frame, text="Seperate levels and models", variable=seperate_levels_and_models_var)
+    seperate_levels_and_models_checkbox.pack(pady=10)
+
+    # Create the include in excel label
+    include_in_excel_label = ctk.CTkLabel(include_in_excel_frame, text="Inlcude in Excel", text_color='white')
+    include_in_excel_label.pack()
+    # Create the excel format checkboxes
+    excel_outputs = {
+        'Item Name': ['title', tk.BooleanVar()],
+        'Creator ID': ['creator_id', tk.BooleanVar()],
+        'Creator Name': ['creator_name', tk.BooleanVar()],
+        'Date Posted': ['date_posted', tk.BooleanVar()],
+        'Country': ['country', tk.BooleanVar()],
+        'Language': ['language', tk.BooleanVar()],
+        'TUS': ['tus', tk.BooleanVar()],
+        'Rating': ['rating', tk.BooleanVar()],
+        'Comment Count': ['comment_count', tk.BooleanVar()],
+        'Tags': ['tags', tk.BooleanVar()],
+        'Item Type': ['item_type', tk.BooleanVar()],
+        'Contribution Count': ['contribution_count', tk.BooleanVar()],
+        'Followers': ['followers', tk.BooleanVar()],
+        'Visitors': ['visitors', tk.BooleanVar()]
+    }
+    intensive_outputs = ['Rating', 'Comment Count', 'Contribution Count', 'Followers', 'Visitors']
+    for item in excel_outputs:
+        excel_outputs[item][1].set(True)
+        output_color = 'white'
+        if item in intensive_outputs:
+            excel_outputs[item][1].set(False)
+            output_color = 'orange'
+        checkbox = ctk.CTkCheckBox(include_in_excel_frame, text=item, variable=excel_outputs[item][1], text_color=output_color)
+        checkbox.pack(anchor="w", pady=2)
+
+    def scan_top_ugc_of_workshop_month_button_click():
         global active_thread
-        global progress_var
-        active_thread = threading.Thread(target=gen_top_item_in_date_range.scan, args=(get_timestamp(start_date), get_timestamp(end_date, True), amount_of_items, progress_queue))
+        start_date = get_timestamp(date_range_start_var.get())
+        end_date = get_timestamp(date_range_end_var.get(), True)
+        amount_of_items = None
+        if amount_of_items_input.get() != "":
+            amount_of_items = int(amount_of_items_input.get())
+        sort_by = sort_by_var.get()
+        seperate_levels_and_models = seperate_levels_and_models_var.get()
+        for item in excel_outputs:
+            excel_outputs[item][1] = excel_outputs[item][1].get()
+        
+        active_thread = threading.Thread(target=gen_top_item_in_date_range.scan, args=(start_date, end_date, amount_of_items, sort_by, seperate_levels_and_models, excel_outputs, progress_queue))
         active_thread.start()
         load_page("Scanning")
         app.update()
-    scan_top_ugc_of_workshop_month_button = ctk.CTkButton(top_monthly_workshop_items_canvas, text="Scan Top UGC of Workshop Month", command=lambda: scan_top_ugc_of_workshop_month_button_click(date_range_start_input.get(), date_range_end_input.get(), int(amount_of_items_input.get())))
+    
+    scan_top_ugc_of_workshop_month_button = ctk.CTkButton(top_monthly_workshop_items_frame, text="Scan", command=lambda: scan_top_ugc_of_workshop_month_button_click())
     scan_top_ugc_of_workshop_month_button.pack()
 def set_up_settings_page():
     # Create the settings frame
@@ -467,8 +518,6 @@ def load_page(page):
         set_up_home_page()
     elif page == "Total UGC Count":
         set_up_most_played_workshop_games_page()
-    elif page == "Total Chinese Count":
-        set_up_total_items_in_date_range_page()
     elif page == "Top Monthly Workshop Items":
         set_up_top_items_in_date_range_page()
     elif page == "Scanning":
@@ -507,7 +556,7 @@ app = tk.Tk()
 app.title("HFFSpy")
 icon_path = get_resource_path("icon.ico")
 app.iconbitmap(icon_path)
-app.geometry("600x500")
+app.geometry("600x750")
 app.minsize(600, 500)
 
 # Create the header frame
@@ -519,9 +568,7 @@ main_frame.pack(expand=True, fill="both")
 
 progress_queue = queue.Queue()
 
-#region input elements
-date_range_start_input = tk.StringVar()
-date_range_end_input = tk.StringVar()
+
 username_input_var = tk.StringVar()
 password_input_var = tk.StringVar()
 verify_code_input_var = tk.StringVar()

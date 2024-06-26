@@ -63,7 +63,7 @@ def start_driver():
 class WorkshopItem:
     def __init__(self, title, creator_id, creator_name, country, language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers, visitors):
         self.title = title
-        self.creator_ID = creator_id
+        self.creator_id = creator_id
         self.creator_name = creator_name
         self.date_posted = date_posted
         self.country = country
@@ -138,7 +138,7 @@ def get_item_and_user_data(item_id):
         print(f"Item ID {item_id} has no creator data.")
         return None, None
 
-def create_workshop_item(item_id, ignore_rating = False, ignore_comments = False, ignore_visitors = False, ignore_contribution_count = False, ignore_followers = False):
+def create_workshop_item(item_id, excel_outputs):
     workshop_item, user = get_item_and_user_data(item_id)
     if workshop_item is None or user is None:
         return WorkshopItem(f"No data returned from {item_id}, gather it manually here https://steamcommunity.com/sharedfiles/filedetails/?id={item_id}", None, None, None, None, None, None, None, None, None, None, None, None, None, None)
@@ -151,29 +151,32 @@ def create_workshop_item(item_id, ignore_rating = False, ignore_comments = False
     date_posted = get_item_date_posted(workshop_item)
     tags = get_item_tags(workshop_item)
     item_type = get_item_type_from_tags(tags)
+    creator_status = get_creator_status(creator_id)
+    contribution_count = "N/A"
+    followers = "N/A"
+    visitors = "N/A"
     rating = "N/A"
     comment_count = "N/A"
-    if(item_type == "Level"):
-        if(get_setting_value("ratings_levels") == 1):
-            rating = get_item_rating(workshop_item)
-        if(get_setting_value("comments_levels") == 1):
-            comment_count = get_item_comment_count(workshop_item)
-    if(item_type == "Model"):
-        if(get_setting_value("ratings_models") == 1):
-            rating = get_item_rating(workshop_item)
-        if(get_setting_value("comments_models") == 1):
-            comment_count = get_item_comment_count(workshop_item)
-    creator_status = get_creator_status(creator_id)
-    contribution_count = get_item_creator_contribution_count(creator_id)
-    followers = get_item_creator_followers_count(creator_id)
-    visitors = get_item_unique_visitors(workshop_item)
+    
+    #These properties require further scraping and slow the scan down, they are optional.
+    if excel_outputs['Rating'][1]:
+        rating = get_item_rating(workshop_item)
+    if excel_outputs['Comment Count'][1]:
+        comment_count = get_item_comment_count(workshop_item)
+    if excel_outputs['Contribution Count'][1]:
+        contribution_count = get_item_creator_contribution_count(workshop_item['creator'])
+    if excel_outputs['Followers'][1]:
+        followers = get_item_creator_followers_count(workshop_item['creator'])
+    if excel_outputs['Visitors'][1]:
+        visitors = get_item_unique_visitors(workshop_item)
+
     return WorkshopItem(title, creator_id, creator_name, country, detected_language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers, visitors)
 
 def get_item_title(workshop_item):
     return workshop_item['title']
 
 def get_item_creator_id(workshop_item):
-    return int(workshop_item['creator'])
+    return workshop_item['creator']
 
 def get_user_details(creator_id):
     try:
