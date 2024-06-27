@@ -40,9 +40,9 @@ def set_up_home_page():
     scans_label = ctk.CTkLabel(home_canvas, text="Scans", text_color='black', font=("Arial", 18))
     scans_label.pack(pady=10)
     #Navigation Buttons
-    total_UGC_count_button = ctk.CTkButton(home_canvas, text="Top 100 Games (UGC Count)", command=lambda: load_page("Total UGC Count"))   
+    total_UGC_count_button = ctk.CTkButton(home_canvas, text="Steam Top 100 (Total UGC)", command=lambda: load_page("Total UGC Count"))   
     total_UGC_count_button.pack(pady=5)
-    top_ugc_of_workshop_month_button = ctk.CTkButton(home_canvas, text="Top Rated HFF Workshop items", command=lambda: load_page("Top Monthly Workshop Items"))
+    top_ugc_of_workshop_month_button = ctk.CTkButton(home_canvas, text="HFF Workshop Scan", command=lambda: load_page("Top Monthly Workshop Items"))
     top_ugc_of_workshop_month_button.pack(pady=5)
     # Create the "Other" label
     other_label = ctk.CTkLabel(home_canvas, text="Other", text_color='black', font=("Arial", 18))
@@ -84,23 +84,23 @@ def set_up_scanning_page():
             back_button = ctk.CTkButton(loading_canvas, text="Back", command=lambda: load_page("Home"))
             back_button.pack()
     app.after(100, update_progress)
-def set_up_most_played_workshop_games_page():
-    total_UGC_count_info = "This will scan the current top 100 most played workshop games and display the total UGC count."
-    total_UGC_count_canvas = set_up_page_canvas("Total UGC Count", total_UGC_count_info, True)
+def set_up_steam_top_100_page():
+    steam_top_100_info = "This will scan the current top 100 most played workshop games and display the total UGC count."
+    steam_top_100_canvas = set_up_page_canvas("Steam Top 100", steam_top_100_info, True)
     # Create the scan total UGC count button
-    def scan_total_UGC_count_button_click():
+    def scan_steam_top_100():
         global active_thread
         active_thread = threading.Thread(target=gen_most_played_workshop_games.scan, args=(progress_queue,),)
         active_thread.start()
         load_page("Scanning")
         app.update()
-    scan_total_UGC_count_button = ctk.CTkButton(total_UGC_count_canvas, text="Scan Total UGC Count", command=lambda: scan_total_UGC_count_button_click())
-    scan_total_UGC_count_button.pack()
-def set_up_top_items_in_date_range_page():
+    scan_steam_top_100_button = ctk.CTkButton(steam_top_100_canvas, text="Scan Steam Top 100", command=lambda: scan_steam_top_100())
+    scan_steam_top_100_button.pack()
+def set_up_scan_HFF_workshop_page():
     hff_workshop_scan_info = "You can use this page to scan the Human Fall Flat Workshop! Set a custom date range, max amount of items to return (blank will return all of them), and sort by 'Most Popular' or 'Most Recent'. You can also choose to seperate levels and models in to two different sheets. Select what information you want to include in the excel file, some may increase the time of the scan or require a logged in steam account. When the scan is complete you will be given an excel file."
-    hff_scan_canvas = set_up_page_canvas("HFF Scan", hff_workshop_scan_info, True)
+    scan_HFF_workshop_canvas = set_up_page_canvas("Scan HFF Workshop", hff_workshop_scan_info, True)
     # Create the scan presets frame
-    scan_presets_frame = ctk.CTkFrame(hff_scan_canvas,fg_color='transparent')
+    scan_presets_frame = ctk.CTkFrame(scan_HFF_workshop_canvas,fg_color='transparent')
     scan_presets_frame.pack(pady=10)
     # Create the weekly scan button
     def weekly_settings():
@@ -139,9 +139,8 @@ def set_up_top_items_in_date_range_page():
                 excel_outputs[item][1].set(False)
     monthly_settings_button = ctk.CTkButton(scan_presets_frame, text="Monthly Scan", command=lambda: monthly_settings())
     monthly_settings_button.grid(row=0, column=1, padx=5)
-
     # Create the options frame
-    options_frame = ctk.CTkFrame(hff_scan_canvas,fg_color='transparent')
+    options_frame = ctk.CTkFrame(scan_HFF_workshop_canvas,fg_color='transparent')
     options_frame.pack(pady=10)
     # Create the general options frame
     general_options_frame = ctk.CTkFrame(options_frame,fg_color='transparent')
@@ -149,8 +148,6 @@ def set_up_top_items_in_date_range_page():
     # Create the include in excel frame
     include_in_excel_frame = ctk.CTkFrame(options_frame, fg_color='transparent')
     include_in_excel_frame.grid(row=0, column=1, padx=10)
-
-
     # Create the date range start input
     date_range_start_label = ctk.CTkLabel(general_options_frame, text="From:", text_color='white')
     date_range_start_label.pack()
@@ -246,7 +243,7 @@ def set_up_top_items_in_date_range_page():
         load_page("Scanning")
         app.update()
     
-    scan_top_ugc_of_workshop_month_button = ctk.CTkButton(hff_scan_canvas, text="Scan", command=lambda: scan_top_ugc_of_workshop_month_button_click())
+    scan_top_ugc_of_workshop_month_button = ctk.CTkButton(scan_HFF_workshop_canvas, text="Scan", command=lambda: scan_top_ugc_of_workshop_month_button_click())
     scan_top_ugc_of_workshop_month_button.pack()
 def set_up_creator_page():
     creator_info = "You can note down known creators here, any noted creators will be hilighted in the excel files generated by this tool."
@@ -448,7 +445,7 @@ def set_up_add_api_key_page():
     # Create the submit button
     def submit_button_click():
         main_functions.apply_setting_value("steam_api_key", api_key_input.get())
-        if(main_functions.set_steam_api_key(api_key_input.get()) == True):
+        if(main_functions.set_steam_api_key() == True):
             load_page("Home")
         else:
             api_key_input.delete(0, "end")
@@ -460,8 +457,8 @@ def load_page(page):
         widget.destroy()
     match page:
         case "Home": set_up_home_page()
-        case "Total UGC Count": set_up_most_played_workshop_games_page()
-        case "Top Monthly Workshop Items": set_up_top_items_in_date_range_page()
+        case "Total UGC Count": set_up_steam_top_100_page()
+        case "Top Monthly Workshop Items": set_up_scan_HFF_workshop_page()
         case "Scanning": set_up_scanning_page()
         case "Creator": set_up_creator_page()
         case "Steam Login": set_up_steam_login_page()
@@ -502,15 +499,15 @@ main_canvas.pack(expand=1, fill="both")
 progress_queue = queue.Queue()
 active_thread = None
 #endregion
- 
-# Set up the log in info header and load the home page.
-load_page("Home")
-set_up_header(False)
 
 #Ensure the program has all the required files and data
 main_functions.check_for_creator_status_files()
 main_functions.check_for_settings_file()
 main_functions.populate_user_lists()
+ 
+# Set up the log in info header and load the home page.
+load_page("Home")
+set_up_header(False)
 
 # Check the driver is operational and the steam API key is set
 if(main_functions.start_driver() == False):

@@ -95,7 +95,8 @@ def get_item_and_user_data(item_id):
 def create_workshop_item(item_id, excel_outputs):
     workshop_item, user = get_item_and_user_data(item_id)
     if workshop_item is None or user is None:
-        return WorkshopItem(f"No data returned from {item_id}, gather it manually here https://steamcommunity.com/sharedfiles/filedetails/?id={item_id}", None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+        error_msg = f'Item may be hidden from view and only accesible by admin accounts and the original creator. The API key does not have the required permissions to access this item. https://steamcommunity.com/sharedfiles/filedetails/?id={item_id}'
+        return WorkshopItem(error_msg, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
     title = get_item_title(workshop_item)
     creator_id = get_item_creator_id(workshop_item)
     creator_name = get_creator_name(user)
@@ -265,7 +266,7 @@ def get_item_comment_count(workshop_item):
         comment_count = driver.find_element(By.CLASS_NAME, "comments").text
         if 'Comments' in comment_count:
             #0 Comments
-            comment_count = comment_count.split('Comments')[0]
+            comment_count = comment_count.split('Comments')[0].replace('留言', '')
         elif '条留言' in comment_count:
             #0 条留言
             comment_count = comment_count.split('条留言')[0]

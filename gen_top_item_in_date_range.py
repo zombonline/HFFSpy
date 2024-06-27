@@ -1,11 +1,12 @@
-from datetime import date
+from datetime import datetime
 import xlsxwriter
 import main_functions
 import os
 
 
 def output_to_excel(data_lists, excel_outputs):
-    workbook = xlsxwriter.Workbook('UGCOfWorkshopMonth.xlsx')
+    dt = datetime.now()
+    workbook = xlsxwriter.Workbook(f'HFFSpy Scan {dt.year}-{dt.month}-{dt.day}-{dt.hour}-{dt.minute}-{dt.second}.xlsx')
     format_dict = {
         "Signed": workbook.add_format({'bold': True, 'bg_color': 'green'}),
         "Contacted": workbook.add_format({'bold': True, 'bg_color': 'yellow'}),
@@ -134,7 +135,7 @@ def output_to_excel(data_lists, excel_outputs):
             
 
     workbook.close()
-    os.startfile('UGCOfWorkshopMonth.xlsx')        
+    os.startfile(f'HFFSpy Scan {dt.year}-{dt.month}-{dt.day}-{dt.hour}-{dt.minute}-{dt.second}.xlsx')        
 
 def scan(start_date_timestamp, end_date_timestamp, amount_of_items, sort_by, seperate_levels_and_models, excel_outputs, progress_queue):
     
