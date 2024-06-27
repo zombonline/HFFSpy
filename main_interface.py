@@ -90,7 +90,7 @@ def set_up_most_played_workshop_games_page():
     # Create the scan total UGC count button
     def scan_total_UGC_count_button_click():
         global active_thread
-        active_thread = threading.Thread(target=gen_most_played_workshop_games.scan, args=(progress_queue,))
+        active_thread = threading.Thread(target=gen_most_played_workshop_games.scan, args=(progress_queue,),)
         active_thread.start()
         load_page("Scanning")
         app.update()
@@ -239,6 +239,7 @@ def set_up_top_items_in_date_range_page():
             if excel_outputs[item][1] == True:
                 if item in login_required_outputs and main_functions.check_steam_user_logged_in() == False:
                     print("Error: User not logged in")
+                    load_page("Steam Login")
                     return
         active_thread = threading.Thread(target=gen_top_item_in_date_range.scan, args=(start_date, end_date, amount_of_items, sort_by, seperate_levels_and_models, excel_outputs, progress_queue))
         active_thread.start()
@@ -335,18 +336,16 @@ def set_up_steam_login_page():
     steam_login_info = "Use this page to log in to a steam account that has permission to view extra information on Human Fall Flat workshop items. This is required for a couple of bits of information such as ratings and visitor count etc.\n\n Please ensure the steam account uses English or Simplified Chinese as it's language to allow scans to function correctly."
     steam_login_canvas = set_up_page_canvas("Steam Login", steam_login_info, True)
 
-    username_input_var = tk.StringVar()
-    password_input_var = tk.StringVar()
-    verify_code_input_var = tk.StringVar()
-
     # Create the username input
     username_label = ctk.CTkLabel(steam_login_canvas, text="Username", text_color='black')
     username_label.pack()
+    username_input_var = tk.StringVar()
     username_input = ctk.CTkEntry(steam_login_canvas, textvariable=username_input_var, text_color='white')
     username_input.pack()
     # Create the password input
     password_label = ctk.CTkLabel(steam_login_canvas, text="Password", text_color='black')
     password_label.pack()
+    password_input_var = tk.StringVar()
     password_input = ctk.CTkEntry(steam_login_canvas, show="*", textvariable=password_input_var, text_color='white')
     password_input.pack()
     # Create the login button
@@ -354,39 +353,82 @@ def set_up_steam_login_page():
     login_button.pack(pady=5)
     def login_button_click():
         global active_thread
-        global progress_queue
-        state = main_functions.log_in_steam_user(username_input_var.get(), password_input_var.get(), progress_queue)
-        if state == 0:
-            #User already logged in
-            set_up_header(main_functions.check_steam_user_logged_in(progress_queue))
-            load_page("Home")
-        elif state == 1:
-            set_up_header(username_input_var.get())
-            load_page("Home")
-        elif state == 2:
-            # Create the verify code input
-            verify_code_label = ctk.CTkLabel(steam_login_canvas, text="Verify Code", text_color='black')
-            verify_code_label.pack()
-            verify_code_input = ctk.CTkEntry(steam_login_canvas, textvariable=verify_code_input_var, text_color='white')
-            verify_code_input.pack()
-            # Create the verify code button
-            def verify_code_button_click():
-                main_functions.verify_steam_user_log_in(verify_code_input.get(), progress_queue)
-                set_up_header(main_functions.check_steam_user_logged_in(progress_queue))
-            verify_code_button = ctk.CTkButton(steam_login_canvas, text="Verify", command=lambda: verify_code_button_click())
-            verify_code_button.pack()
-        elif state == 3:
-            #Create the please check steam app label
-            please_check_steam_app_label = ctk.CTkLabel(steam_login_canvas, text="Please confirm log in on the Steam app", text_color='black')
-            please_check_steam_app_label.pack()
-            #Create the "I'm done" button
-            def im_done_button_click():
-                set_up_header(main_functions.check_steam_user_logged_in(progress_queue))
+        thread_return_queue = queue.Queue()
+
+        active_thread = threading.Thread(target=main_functions.log_in_steam_user, args=(username_input_var.get(),password_input_var.get(), thread_return_queue),)
+        active_thread.start()
+
+        loading_bar = ctk.CTkProgressBar(steam_login_canvas, mode='indeterminate')
+        loading_bar.pack()
+        loading_bar.start()
+        def login_progress():
+            loading_bar.step()
+            if active_thread.is_alive():
+                app.after(100, login_progress)
+            else:
+                loading_bar.stop()
+                state = thread_return_queue.get()
+                loading_bar.destroy()
+                handle_login_state(state)   
+        def clear_login_inputs():
+            username_label.destroy()
+            username_input.destroy()
+            password_label.destroy()
+            password_input.destroy()
+            login_button.destroy()
+        
+        app.after(100, login_progress)
+
+        def handle_login_state(state):
+            if state == 0:
+                #User already logged in
+                set_up_header(main_functions.check_steam_user_logged_in())
                 load_page("Home")
-            im_done_button = ctk.CTkButton(steam_login_canvas, text="I'm done", command=lambda: im_done_button_click())
-            im_done_button.pack()
-        else:
-            print("Error: Unknown state")   
+            elif state == 1:
+                set_up_header(username_input_var.get())
+                load_page("Home")
+            elif state == 2:
+                clear_login_inputs()
+                # Create the verify code input
+                verify_code_label = ctk.CTkLabel(steam_login_canvas, text="Verify Code", text_color='black')
+                verify_code_label.pack()
+                verify_code_input_var = tk.StringVar()
+                verify_code_input = ctk.CTkEntry(steam_login_canvas, textvariable=verify_code_input_var, text_color='white')
+                verify_code_input.pack()
+                # Create the verify result label
+                verify_result_label = ctk.CTkLabel(steam_login_canvas, text="", text_color='red')
+                verify_result_label.pack()
+                # Create the verify code button
+                def verify_code_button_click():
+                    result = main_functions.verify_steam_user_log_in(verify_code_input.get())
+                    if result == True:
+                        verify_result_label.configure(text="Success", text_color='green')
+                        set_up_header(main_functions.check_steam_user_logged_in())
+                    else:
+                        verify_result_label.configure(text="Error: Invalid code", text_color='red')
+                        verify_code_input.delete(0, "end")
+
+                verify_code_button = ctk.CTkButton(steam_login_canvas, text="Verify", command=lambda: verify_code_button_click())
+                verify_code_button.pack()
+            elif state == 3:
+                clear_login_inputs()
+                #Create the please check steam app label
+                please_check_steam_app_label = ctk.CTkLabel(steam_login_canvas, text="Please confirm log in on the Steam app", text_color='black')
+                please_check_steam_app_label.pack()
+                #Create the "Confirmed" button
+                def im_done_button_click():
+                    set_up_header(main_functions.check_steam_user_logged_in())
+                    load_page("Home")
+                im_done_button = ctk.CTkButton(steam_login_canvas, text="Confirmed", command=lambda: im_done_button_click())
+                im_done_button.pack()
+            elif state == 4:
+                #Too many retries
+                clear_login_inputs()
+                #Create the too many retries label
+                too_many_retries_label = ctk.CTkLabel(steam_login_canvas, text="Too many retries, please try again later", text_color='red')
+                too_many_retries_label.pack()
+            else:
+                print("Error: Unknown state")   
     
 def set_up_chrome_driver_page():
     chrome_driver_info = "There may have been an error with locating your Chrome Driver. Please ensure you have a chrome driver installed in the program folder and the version matches your current installation of Google Chrome. Once done, please restart the program."
@@ -406,7 +448,7 @@ def set_up_add_api_key_page():
     # Create the submit button
     def submit_button_click():
         main_functions.apply_setting_value("steam_api_key", api_key_input.get())
-        if(main_functions.set_steam_api_key() == True):
+        if(main_functions.set_steam_api_key(api_key_input.get()) == True):
             load_page("Home")
         else:
             api_key_input.delete(0, "end")
@@ -416,25 +458,16 @@ def set_up_add_api_key_page():
 def load_page(page):
     for widget in main_canvas.winfo_children():
         widget.destroy()
-    if page == "Home":
-        set_up_home_page()
-    elif page == "Total UGC Count":
-        set_up_most_played_workshop_games_page()
-    elif page == "Top Monthly Workshop Items":
-        set_up_top_items_in_date_range_page()
-    elif page == "Scanning":
-        set_up_scanning_page()
-    elif page == "Creator":
-        set_up_creator_page()
-    elif page == "Steam Login":
-        set_up_steam_login_page()
-    elif page == "Chrome Driver":
-        set_up_chrome_driver_page()
-    elif page == "Add API Key":
-        set_up_add_api_key_page()
-    else:
-        print("Error: Page not found")
-        return
+    match page:
+        case "Home": set_up_home_page()
+        case "Total UGC Count": set_up_most_played_workshop_games_page()
+        case "Top Monthly Workshop Items": set_up_top_items_in_date_range_page()
+        case "Scanning": set_up_scanning_page()
+        case "Creator": set_up_creator_page()
+        case "Steam Login": set_up_steam_login_page()
+        case "Chrome Driver": set_up_chrome_driver_page()
+        case "Add API Key": set_up_add_api_key_page()
+        case _: print("Error: Page not found")
 
 def get_timestamp(date_string, end_of_day=False):
     date = datetime.strptime(date_string, "%Y-%m-%d")
@@ -453,8 +486,7 @@ def get_resource_path(relative_path):
 # App Setup
 app = tk.Tk()
 app.title("HFFSpy")
-icon_path = get_resource_path("icon.ico")
-app.iconbitmap(icon_path)
+app.iconbitmap(get_resource_path("icon.ico"))
 app.geometry("600x750")
 app.minsize(600, 750)
 app.maxsize(600, 750)

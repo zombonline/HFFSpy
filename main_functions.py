@@ -13,54 +13,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from datetime import datetime
 import os
 
-def populate_user_lists():
-    global signed_users, contacted_users, planned_users
-    signed_users = []
-    contacted_users = []
-    planned_users = []
-    #zomb (76561198142966023)
-    with open("creator_status_signed.txt", "r") as creator_status_file:    
-        signed_users = [int(line[line.rfind("(")+1: -2].strip()) for line in creator_status_file.readlines()]
-    with open("creator_status_contacted.txt", "r") as creator_status_file:
-        contacted_users = [int(line[line.rfind("(")+1: -2].strip()) for line in creator_status_file.readlines()]
-    with open("creator_status_planned.txt", "r") as creator_status_file:
-        planned_users = [int(line[line.rfind("(")+1: -2].strip()) for line in creator_status_file.readlines()]
-
-def get_creator_status(creator_id):
-    if creator_id in signed_users:
-        return "Signed"
-    elif creator_id in contacted_users:
-        return "Contacted"
-    elif creator_id in planned_users:
-        return "Pending"
-    else:
-        return None
-
-def start_driver():
-    global driver
-    global wait
-    options = Options()
-    options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1920,1080")
-    options.add_argument("--log-level=3")
-    if(get_setting_value("display_browser") == 0):
-        options.add_argument("--headless")
-        print("No browser will be displayed")
-    else:
-        print("Browser will be displayed")
-    base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    chrome_driver_path = os.path.join(base_dir, "chromedriver.exe")
-    print(f"Looking for ChromeDriver at {chrome_driver_path}")
-    if not os.path.exists(chrome_driver_path):
-        print("ChromeDriver not found. Please download the latest version of ChromeDriver from https://sites.google.com/chromium.org/driver/ and place it in the same directory as this script.")
-        return False
-    else:
-        print("ChromeDriver found.")
-    webdriver_service = Service(chrome_driver_path)
-    driver = webdriver.Chrome(service=webdriver_service, options=options)
-    wait = WebDriverWait(driver, 10)
-    return driver
-
+#WORKSHOP ITEM FUNCTIONS
 class WorkshopItem:
     def __init__(self, title, creator_id, creator_name, country, language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers, visitors):
         self.title = title
@@ -200,7 +153,7 @@ def get_creator_contribution_count(creator_id):
         wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, 'workshopBrowsePagingInfo')) > 0)
     except TimeoutException:
         print("Could not find expected number of items.")
-        return 0
+        return "N/A"
     contribution_count = driver.find_element(By.CLASS_NAME, 'workshopBrowsePagingInfo').text
     if 'entries' in contribution_count:
         #Showing 1-2 of 2 entries
@@ -217,10 +170,20 @@ def get_creator_followers_count(creator_id):
         wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, 'followStat')) > 0)
     except TimeoutException:
         print("Could not find expected number of followers.")
-        return 0
+        return "N/A"
     followers_count_string = driver.find_element(By.CLASS_NAME, 'followStat').text
     followers_count = int(followers_count_string.replace(',', ''))
     return followers_count
+
+def get_creator_status(creator_id):
+    if creator_id in signed_users:
+        return "Signed"
+    elif creator_id in contacted_users:
+        return "Contacted"
+    elif creator_id in planned_users:
+        return "Pending"
+    else:
+        return None
 
 def get_creator_country(user):
     if('loccountrycode' in user['player']):
@@ -350,7 +313,8 @@ def get_item_type_from_tags(tags):
         return "Lobby"
     else:
         return "N/A"
-    
+
+#STEAM GAME FUNCTIONS
 class Game:
     def __init__(self, appID, name, amountOfItems):
         self.appID = appID
@@ -387,6 +351,7 @@ def get_game_workshop_count(gameAppID):
         return
     return gameWorkShopItemCount
 
+#EXTRA FUNCTIONS
 def apply_setting_value(setting_name, setting_value):
     setting_file = open("settings.txt", "r")
     setting_lines = setting_file.readlines()
@@ -410,55 +375,58 @@ def get_setting_value(setting_name, return_type = "int"):
                 return line.split(":")[1].strip()
     return None
 
-def log_in_steam_user(user, password, progress_queue):
+def log_in_steam_user(user, password, thread_return_queue=None):
     #This function will take the user and password args, load the steam log in page and log in the user.
     #If the log in is succesful, the function will return 0
     #If there is a verification code screen shown, the program will return 1
     #If there is a "use steam mobile app to log in" screen shown, the program will return 2
-    if(check_steam_user_logged_in() != False):
-        progress_queue.put("Already logged in.")
-        return 0
-    progress_queue.put("Loading Steam log in page.")
     driver.get('https://steamcommunity.com/login/home')
+    if(check_steam_user_logged_in()):
+        return 0
     try:
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "_2eKVn6g5Yysx9JmutQe7WV")))
     except TimeoutException:
         print("Could not find username input.")
         return
-    progress_queue.put("Entering details")
     username_input = driver.find_elements(By.CLASS_NAME, "_2eKVn6g5Yysx9JmutQe7WV")[0]
     password_input = driver.find_elements(By.CLASS_NAME, "_2eKVn6g5Yysx9JmutQe7WV")[1]
     username_input.send_keys(user)
     password_input.send_keys(password)
     submit_button = driver.find_element(By.CLASS_NAME, "_2QgFEj17t677s3x299PNJQ")
     submit_button.click()
-    progress_queue.put("Checking result.")
     if check_steam_user_logged_in():
-        progress_queue.put("Logged in.")
-        return 1
+        return_value = 1
     elif len(driver.find_elements(By.CLASS_NAME, "HPSuAjHOkNfMHwURXTns7")) > 0:
-        progress_queue.put("Verification code screen found.")
-        return 2
+        return_value = 2
     elif len(driver.find_elements(By.CLASS_NAME, "_7LmnTPGNvHEfRVizEiGEV")) > 0:
-        progress_queue.put("Steam mobile app verification screen found.")
-        return 3  
+        return_value = 3
+    elif len(driver.find_elements(By.CLASS_NAME, "A3Y-u39xir9DKtvLEOcnd")) > 0:
+        return_value = 4
+    if thread_return_queue is not None:
+        thread_return_queue.put(return_value)
+    else:
+        return return_value
 
-def verify_steam_user_log_in(verify_code, progress_queue):
+def verify_steam_user_log_in(verify_code):
     try:
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "HPSuAjHOkNfMHwURXTns7")))
     except TimeoutException:
         print("No verification screen found.")
-    progress_queue.put("Entering verification code.")
     verification_inputs = driver.find_elements(By.CLASS_NAME, "HPSuAjHOkNfMHwURXTns7")
     for i in range(len(verify_code)):
         verification_inputs[i].send_keys(verify_code[i])
+    if check_steam_user_logged_in():
+        return True
+    else:
+        for i in range(len(verification_inputs)):
+            verification_inputs[i].clear()
+        return False
 
-def check_steam_user_logged_in(progress_queue):
+def check_steam_user_logged_in():
     try:
-        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "account_name")))
+        WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "account_name")))
         account_name = driver.find_element(By.ID, "account_dropdown").get_attribute('innerHTML')
         account_name = account_name.split('<span class="account_name">')[1].split('</span>')[0]
-        progress_queue.put(f"Logged in as {account_name}")
         return account_name
     except TimeoutException:
         return False
@@ -481,6 +449,31 @@ def check_for_creator_status_files():
         creator_status_file = open("creator_status_signed.txt", "w")
         creator_status_file.close()
 
+def start_driver():
+    global driver
+    global wait
+    options = Options()
+    options.add_argument("--disable-gpu")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--log-level=3")
+    if(get_setting_value("display_browser") == 0):
+        options.add_argument("--headless")
+        print("No browser will be displayed")
+    else:
+        print("Browser will be displayed")
+    base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+    chrome_driver_path = os.path.join(base_dir, "chromedriver.exe")
+    print(f"Looking for ChromeDriver at {chrome_driver_path}")
+    if not os.path.exists(chrome_driver_path):
+        print("ChromeDriver not found. Please download the latest version of ChromeDriver from https://sites.google.com/chromium.org/driver/ and place it in the same directory as this script.")
+        return False
+    else:
+        print("ChromeDriver found.")
+    webdriver_service = Service(chrome_driver_path)
+    driver = webdriver.Chrome(service=webdriver_service, options=options)
+    wait = WebDriverWait(driver, 10)
+    return driver
+
 def set_steam_api_key():
     global KEY, steam, url
     KEY = get_setting_value("steam_api_key", "str")
@@ -496,6 +489,18 @@ def set_steam_api_key():
         return False
     return True
 
+def populate_user_lists():
+    global signed_users, contacted_users, planned_users
+    signed_users = []
+    contacted_users = []
+    planned_users = []
+    #zomb (76561198142966023)
+    with open("creator_status_signed.txt", "r") as creator_status_file:    
+        signed_users = [int(line[line.rfind("(")+1: -2].strip()) for line in creator_status_file.readlines()]
+    with open("creator_status_contacted.txt", "r") as creator_status_file:
+        contacted_users = [int(line[line.rfind("(")+1: -2].strip()) for line in creator_status_file.readlines()]
+    with open("creator_status_planned.txt", "r") as creator_status_file:
+        planned_users = [int(line[line.rfind("(")+1: -2].strip()) for line in creator_status_file.readlines()]
 
 KEY = None
 steam = None
