@@ -11,20 +11,17 @@ import queue
 import sys
 
 def set_up_header(account_name):
-    for widget in header_frame.winfo_children():
+    for widget in header_canvas.winfo_children():
         widget.destroy()
-# Create the header canvas
-    header_canvas = ctk.CTkCanvas(header_frame, height=65, bg='orange')
-    header_canvas.pack(expand=False, fill="both")
-# Create the header label
+    # Create the header label
     if account_name:
         header_label = ctk.CTkLabel(header_canvas, text="Logged in as: " + account_name, text_color='black', font=("Arial", 18))
     else:
         header_label = ctk.CTkLabel(header_canvas, text="Not logged in", text_color='black', font=("Arial", 18))
-    header_label.pack()
+    header_label.pack(pady=5)
 
 def set_up_page_canvas(page_name, page_info, include_home_button):
-    new_canvas = ctk.CTkCanvas(main_frame, bg='grey')
+    new_canvas = ctk.CTkCanvas(main_canvas, bg='grey')
     new_canvas.pack(expand=True, fill="both")
     new_title = ctk.CTkLabel(new_canvas, text=page_name, text_color='black', font=("Arial", 24))
     new_title.pack(pady=5)
@@ -69,17 +66,8 @@ def set_up_home_page():
     warning_label = ctk.CTkLabel(home_canvas, text="", text_color='red')
     warning_label.pack()
 def set_up_scanning_page():
-    # Create the loading frame
-    loading_frame = ctk.CTkFrame(main_frame)
-    loading_frame.pack(expand=True, fill="both")
-    # Create the loading canvas
-    loading_canvas = ctk.CTkCanvas(loading_frame)
-    loading_canvas.pack(expand=True, fill="both")
-    # Create the loading label
-    loading_label = ctk.CTkLabel(loading_canvas, text="Scanning...", text_color='black', font=("Arial", 24))
-    loading_label.pack()
-    # Create the progress message label
-    progress_message_label = ctk.CTkLabel(loading_canvas, text="This may take a while", text_color='black')
+    loading_canvas = set_up_page_canvas("Scanning", None, False)
+    progress_message_label = ctk.CTkLabel(loading_canvas, text="This may take a while", text_color='black',)
     progress_message_label.pack()
     def update_progress():
         try:
@@ -91,7 +79,7 @@ def set_up_scanning_page():
         if active_thread.is_alive():
             app.after(100, update_progress)
         else:
-            loading_label.configure(text="Scanning complete")
+            progress_message_label.configure(text="Scanning complete")
             # Create the back button
             back_button = ctk.CTkButton(loading_canvas, text="Back", command=lambda: load_page("Home"))
             back_button.pack()
@@ -109,7 +97,7 @@ def set_up_most_played_workshop_games_page():
     scan_total_UGC_count_button = ctk.CTkButton(total_UGC_count_canvas, text="Scan Total UGC Count", command=lambda: scan_total_UGC_count_button_click())
     scan_total_UGC_count_button.pack()
 def set_up_top_items_in_date_range_page():
-    hff_workshop_scan_info = "You can use this page to scan the Human Fall Flat Workshop! Set a custom date range, max amount of items to return (blank will return all of them), and sort by 'Most Popular' or 'Most Recent'. You can also choose to seperate levels and models in to two different sheets. Select what information you want to include in the excel file, any orange items will increase the scanning time, and any bold items require a valid log in. When the scan is complete you will be given an excel file."
+    hff_workshop_scan_info = "You can use this page to scan the Human Fall Flat Workshop! Set a custom date range, max amount of items to return (blank will return all of them), and sort by 'Most Popular' or 'Most Recent'. You can also choose to seperate levels and models in to two different sheets. Select what information you want to include in the excel file, some may increase the time of the scan or require a logged in steam account. When the scan is complete you will be given an excel file."
     hff_scan_canvas = set_up_page_canvas("HFF Scan", hff_workshop_scan_info, True)
     # Create the scan presets frame
     scan_presets_frame = ctk.CTkFrame(hff_scan_canvas,fg_color='transparent')
@@ -226,17 +214,15 @@ def set_up_top_items_in_date_range_page():
     login_required_outputs = ['Rating', 'Visitors']
     for item in excel_outputs:
         excel_outputs[item][1].set(True)
-        output_color = 'white'
-        output_font = ("Roboto", 12)
+        checkbox_text = item
+        checkbox_text_color = 'white'
         if item in intensive_outputs:
-            excel_outputs[item][1].set(False)
-            output_color = 'orange'
+            checkbox_text += " (Intensive)"
+            checkbox_text_color = 'orange'
         if item in login_required_outputs:
-            excel_outputs[item][1].set(False)
-            output_font = ("Roboto", 12, "bold")
-            
-            
-        checkbox = ctk.CTkCheckBox(include_in_excel_frame, text=item, variable=excel_outputs[item][1], text_color=output_color, font=output_font)
+            checkbox_text += " (Login Required)"
+            checkbox_text_color = 'orange'
+        checkbox = ctk.CTkCheckBox(include_in_excel_frame, text=checkbox_text, variable=excel_outputs[item][1], text_color=checkbox_text_color)
         checkbox.pack(anchor="w", pady=2)
 
     def scan_top_ugc_of_workshop_month_button_click():
@@ -250,7 +236,10 @@ def set_up_top_items_in_date_range_page():
         seperate_levels_and_models = seperate_levels_and_models_var.get()
         for item in excel_outputs:
             excel_outputs[item][1] = excel_outputs[item][1].get()
-        
+            if excel_outputs[item][1] == True:
+                if item in login_required_outputs and main_functions.check_steam_user_logged_in() == False:
+                    print("Error: User not logged in")
+                    return
         active_thread = threading.Thread(target=gen_top_item_in_date_range.scan, args=(start_date, end_date, amount_of_items, sort_by, seperate_levels_and_models, excel_outputs, progress_queue))
         active_thread.start()
         load_page("Scanning")
@@ -259,12 +248,10 @@ def set_up_top_items_in_date_range_page():
     scan_top_ugc_of_workshop_month_button = ctk.CTkButton(hff_scan_canvas, text="Scan", command=lambda: scan_top_ugc_of_workshop_month_button_click())
     scan_top_ugc_of_workshop_month_button.pack()
 def set_up_creator_page():
-    current_status = "signed"
     creator_info = "You can note down known creators here, any noted creators will be hilighted in the excel files generated by this tool."
     creator_canvas = set_up_page_canvas("Creator", creator_info, True)
-     # Create the tab buttons frame
-    tab_buttons_frame = ctk.CTkFrame(creator_canvas)
-    tab_buttons_frame.pack()
+    tab_buttons_frame = ctk.CTkFrame(creator_canvas, fg_color='transparent')
+    tab_buttons_frame.pack(pady=5)
     def populate_creator_status_listbox(status):
         global current_status 
         current_status = status
@@ -283,10 +270,7 @@ def set_up_creator_page():
             for line in lines:
                 if line == "\n":
                     continue
-                user_details = main_functions.get_user_details(line)
-                if user_details == None:
-                    continue
-                creator_status_listbox.insert("end", main_functions.get_item_creator_name(user_details)  + " (" + line + ")")
+                creator_status_listbox.insert("end", line.strip())
     #Create the 'Signed' Button
     signed_button = ctk.CTkButton(tab_buttons_frame, text="Signed", border_color="white", command=lambda: populate_creator_status_listbox("signed"))
     signed_button.grid(row=0, column=0, padx=10)
@@ -297,7 +281,7 @@ def set_up_creator_page():
     planning_to_contact_button = ctk.CTkButton(tab_buttons_frame, text="Planning to contact", border_color="white", command=lambda: populate_creator_status_listbox("planned"))
     planning_to_contact_button.grid(row=0, column=2, padx=10)
     # Create the creator status listbox
-    creator_status_listbox = tk.Listbox(creator_canvas, width=50)
+    creator_status_listbox = tk.Listbox(creator_canvas, width=50, selectmode="single", bg='darkgray', relief="flat", justify="center",activestyle="none")
     creator_status_listbox.pack()
     # Populate the listbox with the 'signed' creators
     populate_creator_status_listbox("signed")
@@ -305,13 +289,14 @@ def set_up_creator_page():
     message_label = ctk.CTkLabel(creator_canvas, text="", text_color='black', font=("Arial", 24))
     message_label.pack()
     # Create the 'Add creator' input
-    creator_input = ctk.CTkEntry(creator_canvas, text_color='white')
+    creator_input = ctk.CTkEntry(creator_canvas, text_color='white', placeholder_text="Enter a Steam User ID")
     creator_input.pack()
     # Create the 'Add creator' button
     def add_creator_button_click():
         global current_status
         creator_id = creator_input.get()
-        if main_functions.get_user_details(creator_id) == None:
+        user = main_functions.get_user_details(creator_id)
+        if user == None:
             message_label.configure(text="Error: User not found", text_color='red')
             print("Error: User not found")
         else:
@@ -319,11 +304,14 @@ def set_up_creator_page():
             with open(f"creator_status_{current_status}.txt", "r") as oldfile, open(f"creator_status_{current_status}_temp.txt", "w") as newfile:
                 for line in oldfile:
                     newfile.write(line)
-                newfile.write(creator_id + "\n")
+                
+                newfile.write(main_functions.get_creator_name(user) + " (" + creator_id + ")\n")
             os.remove(f"creator_status_{current_status}.txt")
             os.rename(f"creator_status_{current_status}_temp.txt", f"creator_status_{current_status}.txt")
             populate_creator_status_listbox(current_status)
             creator_input.delete(0, "end")
+        main_functions.populate_user_lists()
+
     add_creator_button = ctk.CTkButton(creator_canvas, text="Add Creator", command=lambda: add_creator_button_click())
     add_creator_button.pack()
     # Create the 'Remove creator' button
@@ -339,15 +327,18 @@ def set_up_creator_page():
                 newfile.write(line)
         os.remove(f"creator_status_{current_status}.txt")
         os.rename(f"creator_status_{current_status}_temp.txt", f"creator_status_{current_status}.txt")
-            
         populate_creator_status_listbox(current_status)
+        main_functions.populate_user_lists()
     remove_creator_button = ctk.CTkButton(creator_canvas, text="Remove Creator", command=lambda: remove_creator_button_click())
     remove_creator_button.pack()
 def set_up_steam_login_page():
-    steam_login_info = """Use this page to log in to a steam account that has permission to view extra information on Human Fall Flat workshop items. This is required for a couple of bits of information such as ratings and visitor count etc. 
-    
-    Please ensure the steam account uses English or Simplified Chinese as it's language to allow scans to function correctly."""
+    steam_login_info = "Use this page to log in to a steam account that has permission to view extra information on Human Fall Flat workshop items. This is required for a couple of bits of information such as ratings and visitor count etc.\n\n Please ensure the steam account uses English or Simplified Chinese as it's language to allow scans to function correctly."
     steam_login_canvas = set_up_page_canvas("Steam Login", steam_login_info, True)
+
+    username_input_var = tk.StringVar()
+    password_input_var = tk.StringVar()
+    verify_code_input_var = tk.StringVar()
+
     # Create the username input
     username_label = ctk.CTkLabel(steam_login_canvas, text="Username", text_color='black')
     username_label.pack()
@@ -360,12 +351,14 @@ def set_up_steam_login_page():
     password_input.pack()
     # Create the login button
     login_button = ctk.CTkButton(steam_login_canvas, text="Login", command=lambda: login_button_click())
-    login_button.pack()
+    login_button.pack(pady=5)
     def login_button_click():
-        state = main_functions.log_in_steam_user(username_input_var.get(), password_input_var.get())
+        global active_thread
+        global progress_queue
+        state = main_functions.log_in_steam_user(username_input_var.get(), password_input_var.get(), progress_queue)
         if state == 0:
             #User already logged in
-            set_up_header(main_functions.check_steam_user_logged_in())
+            set_up_header(main_functions.check_steam_user_logged_in(progress_queue))
             load_page("Home")
         elif state == 1:
             set_up_header(username_input_var.get())
@@ -378,8 +371,8 @@ def set_up_steam_login_page():
             verify_code_input.pack()
             # Create the verify code button
             def verify_code_button_click():
-                main_functions.verify_steam_user_log_in(verify_code_input.get())
-                set_up_header(main_functions.check_steam_user_logged_in())
+                main_functions.verify_steam_user_log_in(verify_code_input.get(), progress_queue)
+                set_up_header(main_functions.check_steam_user_logged_in(progress_queue))
             verify_code_button = ctk.CTkButton(steam_login_canvas, text="Verify", command=lambda: verify_code_button_click())
             verify_code_button.pack()
         elif state == 3:
@@ -388,18 +381,22 @@ def set_up_steam_login_page():
             please_check_steam_app_label.pack()
             #Create the "I'm done" button
             def im_done_button_click():
-                set_up_header(main_functions.check_steam_user_logged_in())
+                set_up_header(main_functions.check_steam_user_logged_in(progress_queue))
                 load_page("Home")
             im_done_button = ctk.CTkButton(steam_login_canvas, text="I'm done", command=lambda: im_done_button_click())
             im_done_button.pack()
         else:
             print("Error: Unknown state")   
+    
 def set_up_chrome_driver_page():
     chrome_driver_info = "There may have been an error with locating your Chrome Driver. Please ensure you have a chrome driver installed in the program folder and the version matches your current installation of Google Chrome. Once done, please restart the program."
     chrome_driver_canvas = set_up_page_canvas("Chrome Driver", chrome_driver_info, False)
     # Create the download button
     download_button = ctk.CTkButton(chrome_driver_canvas, text="Download", command=lambda: os.system("start https://googlechromelabs.github.io/chrome-for-testing/"))
     download_button.pack()
+    # Create the 'open program folder' button
+    open_program_folder_button = ctk.CTkButton(chrome_driver_canvas, text="Open Program Folder", command=lambda: os.system("start ."))
+    open_program_folder_button.pack(pady=5)
 def set_up_add_api_key_page():
     api_key_info = "Please enter a valid steam API key."
     add_api_key_canvas = set_up_page_canvas("Add API Key", api_key_info, False)
@@ -417,7 +414,7 @@ def set_up_add_api_key_page():
     submit_button.pack()
 
 def load_page(page):
-    for widget in main_frame.winfo_children():
+    for widget in main_canvas.winfo_children():
         widget.destroy()
     if page == "Home":
         set_up_home_page()
@@ -427,8 +424,6 @@ def load_page(page):
         set_up_top_items_in_date_range_page()
     elif page == "Scanning":
         set_up_scanning_page()
-    elif page == "Settings":
-        set_up_settings_page()
     elif page == "Creator":
         set_up_creator_page()
     elif page == "Steam Login":
@@ -440,8 +435,6 @@ def load_page(page):
     else:
         print("Error: Page not found")
         return
-    global current_page
-    current_page = page  
 
 def get_timestamp(date_string, end_of_day=False):
     date = datetime.strptime(date_string, "%Y-%m-%d")
@@ -457,38 +450,37 @@ def get_resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
+# App Setup
 app = tk.Tk()
 app.title("HFFSpy")
 icon_path = get_resource_path("icon.ico")
 app.iconbitmap(icon_path)
 app.geometry("600x750")
 app.minsize(600, 750)
+app.maxsize(600, 750)
 
 # Create the header frame
-header_frame = ctk.CTkFrame(app, height=65)
-header_frame.pack(expand=False, fill="both")
+header_canvas = ctk.CTkCanvas(app, bg="orange" ,height=55)
+header_canvas.pack(fill="x")
 # Create the main frame
-main_frame = ctk.CTkFrame(app)
-main_frame.pack(expand=True, fill="both")
+main_canvas = ctk.CTkCanvas(app, bg='grey')
+main_canvas.pack(expand=1, fill="both")
 
+# Global Variables, a queue to store progress messages and a thread to run scans.
 progress_queue = queue.Queue()
-
-
-username_input_var = tk.StringVar()
-password_input_var = tk.StringVar()
-verify_code_input_var = tk.StringVar()
-tags_checklist_vars = {}
-
 active_thread = None
 #endregion
  
-current_page = "Home"
-load_page(current_page)
+# Set up the log in info header and load the home page.
+load_page("Home")
 set_up_header(False)
-main_functions.check_for_creator_status_file()
+
+#Ensure the program has all the required files and data
+main_functions.check_for_creator_status_files()
 main_functions.check_for_settings_file()
 main_functions.populate_user_lists()
 
+# Check the driver is operational and the steam API key is set
 if(main_functions.start_driver() == False):
     load_page("Chrome Driver")
 elif(main_functions.set_steam_api_key() == False):

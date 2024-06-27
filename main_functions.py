@@ -18,12 +18,13 @@ def populate_user_lists():
     signed_users = []
     contacted_users = []
     planned_users = []
+    #zomb (76561198142966023)
     with open("creator_status_signed.txt", "r") as creator_status_file:    
-        signed_users = [int(line.strip()) for line in creator_status_file.readlines()]
+        signed_users = [int(line[line.rfind("(")+1: -2].strip()) for line in creator_status_file.readlines()]
     with open("creator_status_contacted.txt", "r") as creator_status_file:
-        contacted_users = [int(line.strip()) for line in creator_status_file.readlines()]
+        contacted_users = [int(line[line.rfind("(")+1: -2].strip()) for line in creator_status_file.readlines()]
     with open("creator_status_planned.txt", "r") as creator_status_file:
-        planned_users = [int(line.strip()) for line in creator_status_file.readlines()]
+        planned_users = [int(line[line.rfind("(")+1: -2].strip()) for line in creator_status_file.readlines()]
 
 def get_creator_status(creator_id):
     if creator_id in signed_users:
@@ -144,9 +145,9 @@ def create_workshop_item(item_id, excel_outputs):
         return WorkshopItem(f"No data returned from {item_id}, gather it manually here https://steamcommunity.com/sharedfiles/filedetails/?id={item_id}", None, None, None, None, None, None, None, None, None, None, None, None, None, None)
     title = get_item_title(workshop_item)
     creator_id = get_item_creator_id(workshop_item)
-    creator_name = get_item_creator_name(user)
-    country = get_item_creator_country(user)
-    detected_language = get_item_creator_language(user, workshop_item)
+    creator_name = get_creator_name(user)
+    country = get_creator_country(user)
+    detected_language = get_creator_language(user, workshop_item)
     tus = get_item_tus(workshop_item)
     date_posted = get_item_date_posted(workshop_item)
     tags = get_item_tags(workshop_item)
@@ -159,16 +160,19 @@ def create_workshop_item(item_id, excel_outputs):
     comment_count = "N/A"
     
     #These properties require further scraping and slow the scan down, they are optional.
+
+    # These three are scraped from the same page, they're banded together for this reason.
     if excel_outputs['Rating'][1]:
         rating = get_item_rating(workshop_item)
     if excel_outputs['Comment Count'][1]:
         comment_count = get_item_comment_count(workshop_item)
-    if excel_outputs['Contribution Count'][1]:
-        contribution_count = get_item_creator_contribution_count(workshop_item['creator'])
-    if excel_outputs['Followers'][1]:
-        followers = get_item_creator_followers_count(workshop_item['creator'])
     if excel_outputs['Visitors'][1]:
-        visitors = get_item_unique_visitors(workshop_item)
+        visitors = get_item_visitors(workshop_item)
+    # These two are scraped from the same page, they're banded together for this reason.
+    if excel_outputs['Contribution Count'][1]:
+        contribution_count = get_creator_contribution_count(workshop_item['creator'])
+    if excel_outputs['Followers'][1]:
+        followers = get_creator_followers_count(workshop_item['creator'])
 
     return WorkshopItem(title, creator_id, creator_name, country, detected_language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers, visitors)
 
@@ -184,13 +188,13 @@ def get_user_details(creator_id):
     except:
         return None
 
-def get_item_creator_name(user):
+def get_creator_name(user):
     if('personaname' in user['player']):
         return user['player']['personaname']
     else:
         return "N/A"
 
-def get_item_creator_contribution_count(creator_id):
+def get_creator_contribution_count(creator_id):
     driver.get(f"https://steamcommunity.com/profiles/{creator_id}/myworkshopfiles/?appid=477160")
     try:
         wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, 'workshopBrowsePagingInfo')) > 0)
@@ -206,7 +210,7 @@ def get_item_creator_contribution_count(creator_id):
         contribution_count = int(contribution_count.split('共 ')[1].split(' 项条目')[0].replace(',', ''))
     return contribution_count
 
-def get_item_creator_followers_count(creator_id):
+def get_creator_followers_count(creator_id):
     if driver.current_url != f"https://steamcommunity.com/profiles/{creator_id}/myworkshopfiles/?appid=477160":
         driver.get(f"https://steamcommunity.com/profiles/{creator_id}/myworkshopfiles/?appid=477160")
     try:
@@ -218,31 +222,16 @@ def get_item_creator_followers_count(creator_id):
     followers_count = int(followers_count_string.replace(',', ''))
     return followers_count
 
-def get_item_creator_country(user):
+def get_creator_country(user):
     if('loccountrycode' in user['player']):
         return user['player']['loccountrycode']
     else:
         return "N/A"
     
-def get_item_unique_visitors(workshop_item):
-    file_id = workshop_item["publishedfileid"]
-    item_url = f"https://steamcommunity.com/sharedfiles/filedetails/?id={file_id}"
-    if driver.current_url != item_url:
-        driver.get(item_url)
-    try:
-        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "stats_table")))
-        stats_table = driver.find_element(By.CLASS_NAME, "stats_table")
-        tbody = stats_table.find_element(By.TAG_NAME, "tbody")
-        first_row = tbody.find_element(By.TAG_NAME, "tr")
-        unique_visitors = first_row.text.split(' ')[0].replace(',', '')
-    except TimeoutException:
-        unique_visitors = "N/A"
-    return unique_visitors
-
-def get_item_creator_language(user, workshop_item):
+def get_creator_language(user, workshop_item):
     other_asian_language_codes = ['id', 'ja', 'ko', 'th', 'tl', 'vi']
     #chinese override, if the user's country is already display as China, then the language is Chinese
-    if(get_item_creator_country(user) == 'CN'):
+    if(get_creator_country(user) == 'CN'):
         return 'zh-cn'
     strings = []
     if user is None:
@@ -320,6 +309,21 @@ def get_item_comment_count(workshop_item):
     except TimeoutException:
         comment_count = "N/A"
     return comment_count
+
+def get_item_visitors(workshop_item):
+    file_id = workshop_item["publishedfileid"]
+    item_url = f"https://steamcommunity.com/sharedfiles/filedetails/?id={file_id}"
+    if driver.current_url != item_url:
+        driver.get(item_url)
+    try:
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "stats_table")))
+        stats_table = driver.find_element(By.CLASS_NAME, "stats_table")
+        tbody = stats_table.find_element(By.TAG_NAME, "tbody")
+        first_row = tbody.find_element(By.TAG_NAME, "tr")
+        visitors = first_row.text.split(' ')[0].replace(',', '')
+    except TimeoutException:
+        visitors = "N/A"
+    return visitors
 
 def get_item_date_posted(workshop_item):
     date_string = "N/A"
@@ -406,54 +410,55 @@ def get_setting_value(setting_name, return_type = "int"):
                 return line.split(":")[1].strip()
     return None
 
-def log_in_steam_user(user, password):
+def log_in_steam_user(user, password, progress_queue):
     #This function will take the user and password args, load the steam log in page and log in the user.
     #If the log in is succesful, the function will return 0
     #If there is a verification code screen shown, the program will return 1
     #If there is a "use steam mobile app to log in" screen shown, the program will return 2
     if(check_steam_user_logged_in() != False):
-        print("Already logged in.")
+        progress_queue.put("Already logged in.")
         return 0
+    progress_queue.put("Loading Steam log in page.")
     driver.get('https://steamcommunity.com/login/home')
     try:
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "_2eKVn6g5Yysx9JmutQe7WV")))
     except TimeoutException:
         print("Could not find username input.")
         return
+    progress_queue.put("Entering details")
     username_input = driver.find_elements(By.CLASS_NAME, "_2eKVn6g5Yysx9JmutQe7WV")[0]
     password_input = driver.find_elements(By.CLASS_NAME, "_2eKVn6g5Yysx9JmutQe7WV")[1]
     username_input.send_keys(user)
     password_input.send_keys(password)
     submit_button = driver.find_element(By.CLASS_NAME, "_2QgFEj17t677s3x299PNJQ")
     submit_button.click()
+    progress_queue.put("Checking result.")
     if check_steam_user_logged_in():
-        print("Logged in.")
+        progress_queue.put("Logged in.")
         return 1
     elif len(driver.find_elements(By.CLASS_NAME, "HPSuAjHOkNfMHwURXTns7")) > 0:
-        print("Verification code screen found.")
+        progress_queue.put("Verification code screen found.")
         return 2
     elif len(driver.find_elements(By.CLASS_NAME, "_7LmnTPGNvHEfRVizEiGEV")) > 0:
-        print("Use steam mobile app to log in screen found.")
+        progress_queue.put("Steam mobile app verification screen found.")
         return 3  
 
-def verify_steam_user_log_in(verify_code):
+def verify_steam_user_log_in(verify_code, progress_queue):
     try:
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "HPSuAjHOkNfMHwURXTns7")))
     except TimeoutException:
         print("No verification screen found.")
-    
+    progress_queue.put("Entering verification code.")
     verification_inputs = driver.find_elements(By.CLASS_NAME, "HPSuAjHOkNfMHwURXTns7")
     for i in range(len(verify_code)):
         verification_inputs[i].send_keys(verify_code[i])
 
-def check_steam_user_logged_in():
+def check_steam_user_logged_in(progress_queue):
     try:
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "account_name")))
-        time.sleep(2)
         account_name = driver.find_element(By.ID, "account_dropdown").get_attribute('innerHTML')
         account_name = account_name.split('<span class="account_name">')[1].split('</span>')[0]
-        print(f"Logged in as {account_name}")
-        print(bool(account_name))
+        progress_queue.put(f"Logged in as {account_name}")
         return account_name
     except TimeoutException:
         return False
@@ -464,7 +469,8 @@ def check_for_settings_file():
         settings_file.write("display_browser:0\n")
         settings_file.write("steam_api_key:\n")
         settings_file.close()
-def check_for_creator_status_file():
+
+def check_for_creator_status_files():
     if not os.path.exists("creator_status_contacted.txt"):
         creator_status_file = open("creator_status_contacted.txt", "w")
         creator_status_file.close()
@@ -481,7 +487,6 @@ def set_steam_api_key():
     steam = Steam(KEY)
     url = f"https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/"
     try:
-        print("Testing Steam API key...")
         response = get_item_and_user_data(3256120107)
         if 'error' in response:
             print("Invalid Steam API key. Please enter a valid key in the settings file.")
