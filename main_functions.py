@@ -354,10 +354,12 @@ def get_game_workshop_count(gameAppID):
 
 #EXTRA FUNCTIONS
 def apply_setting_value(setting_name, setting_value):
-    setting_file = open("settings.txt", "r")
+    #open settings file from appdata
+    appdata_dir = get_appdata_dir()
+    setting_file = open(appdata_dir + "\\settings.txt", "r")
     setting_lines = setting_file.readlines()
     setting_file.close()
-    setting_file = open("settings.txt", "w")
+    setting_file = open(appdata_dir + "\\settings.txt", "w")
     for line in setting_lines:
         if line.split(":")[0] == setting_name:
             line = f"{setting_name}:{setting_value}\n"
@@ -365,7 +367,8 @@ def apply_setting_value(setting_name, setting_value):
     setting_file.close()
 
 def get_setting_value(setting_name, return_type = "int"):
-    setting_file = open("settings.txt", "r")
+    appdata_dir = get_appdata_dir()
+    setting_file = open(appdata_dir + "\\settings.txt", "r")
     setting_lines = setting_file.readlines()
     setting_file.close()
     for line in setting_lines:
@@ -433,22 +436,31 @@ def check_steam_user_logged_in():
         return False
 
 def check_for_settings_file():
-    if not os.path.exists("settings.txt"):
-        settings_file = open("settings.txt", "w")
-        settings_file.write("display_browser:0\n")
-        settings_file.write("steam_api_key:\n")
-        settings_file.close()
+    try:
+        appdata_dir = get_appdata_dir()
+        if not os.path.exists(appdata_dir + "\\settings.txt"):
+            settings_file = open(appdata_dir + "\\settings.txt", "w")
+            settings_file.write("display_browser:1\n")
+            settings_file.write("steam_api_key:\n")
+            settings_file.close()
+    except:
+        return False
 
 def check_for_creator_status_files():
-    if not os.path.exists("creator_status_contacted.txt"):
-        creator_status_file = open("creator_status_contacted.txt", "w")
-        creator_status_file.close()
-    if not os.path.exists("creator_status_planned.txt"):
-        creator_status_file = open("creator_status_planned.txt", "w")
-        creator_status_file.close()
-    if not os.path.exists("creator_status_signed.txt"):
-        creator_status_file = open("creator_status_signed.txt", "w")
-        creator_status_file.close()
+    try:
+        appdata_dir = get_appdata_dir()
+        if not os.path.exists(appdata_dir + "\\creator_status_signed.txt"):
+            signed_file = open(appdata_dir + "\\creator_status_signed.txt", "w")
+            signed_file.close()
+        if not os.path.exists(appdata_dir + "\\creator_status_contacted.txt"):
+            contacted_file = open(appdata_dir + "\\creator_status_contacted.txt", "w")
+            contacted_file.close()
+        if not os.path.exists(appdata_dir + "\\creator_status_planned.txt"):
+            planned_file = open(appdata_dir + "\\creator_status_planned.txt", "w")
+            planned_file.close()
+        return True
+    except:
+        return False
 
 def start_driver():
     global driver
@@ -495,13 +507,21 @@ def populate_user_lists():
     signed_users = []
     contacted_users = []
     planned_users = []
-    #zomb (76561198142966023)
-    with open("creator_status_signed.txt", "r") as creator_status_file:    
+    appdata_dir = get_appdata_dir()
+    appdata_dir = get_appdata_dir()
+    with open(appdata_dir + "\\creator_status_signed.txt", "r") as creator_status_file:    
         signed_users = [int(line[line.rfind("(")+1: -2].strip()) for line in creator_status_file.readlines()]
-    with open("creator_status_contacted.txt", "r") as creator_status_file:
+    with open(appdata_dir + "\\creator_status_contacted.txt", "r") as creator_status_file:
         contacted_users = [int(line[line.rfind("(")+1: -2].strip()) for line in creator_status_file.readlines()]
-    with open("creator_status_planned.txt", "r") as creator_status_file:
+    with open(appdata_dir + "\\creator_status_planned.txt", "r") as creator_status_file:
         planned_users = [int(line[line.rfind("(")+1: -2].strip()) for line in creator_status_file.readlines()]
+
+def get_appdata_dir():
+    appdata_dir = os.getenv('APPDATA')
+    if not os.path.exists(appdata_dir + "\\HFFSpy"):
+        os.makedirs(appdata_dir + "\\HFFSpy")
+    return appdata_dir + "\\HFFSpy"
+
 
 KEY = None
 steam = None
