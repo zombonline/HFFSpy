@@ -15,7 +15,7 @@ import os
 
 #WORKSHOP ITEM FUNCTIONS
 class WorkshopItem:
-    def __init__(self, title, creator_id, creator_name, country, language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers, visitors):
+    def __init__(self, title, creator_id, creator_name, country, language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers, visitors, item_id):
         self.title = title
         self.creator_id = creator_id
         self.creator_name = creator_name
@@ -31,6 +31,7 @@ class WorkshopItem:
         self.contribution_count = contribution_count
         self.followers = followers
         self.visitors = visitors
+        self.item_id = item_id
 
 def workshop_next_page():
     currentPageUrl = driver.current_url
@@ -95,8 +96,7 @@ def get_item_and_user_data(item_id):
 def create_workshop_item(item_id, excel_outputs):
     workshop_item, user = get_item_and_user_data(item_id)
     if workshop_item is None or user is None:
-        error_msg = f'Item may be hidden from view and only accesible by admin accounts and the original creator. The API key does not have the required permissions to access this item. https://steamcommunity.com/sharedfiles/filedetails/?id={item_id}'
-        return WorkshopItem(error_msg, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+        return WorkshopItem(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, item_id)
     title = get_item_title(workshop_item)
     creator_id = get_item_creator_id(workshop_item)
     creator_name = get_creator_name(user)
@@ -128,7 +128,7 @@ def create_workshop_item(item_id, excel_outputs):
     if excel_outputs['Followers'][1]:
         followers = get_creator_followers_count(workshop_item['creator'])
 
-    return WorkshopItem(title, creator_id, creator_name, country, detected_language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers, visitors)
+    return WorkshopItem(title, creator_id, creator_name, country, detected_language, tus, rating, comment_count, date_posted, tags, item_type, creator_status, contribution_count, followers, visitors, item_id)
 
 def get_item_title(workshop_item):
     return workshop_item['title']
@@ -388,21 +388,22 @@ def log_in_steam_user(user, password, thread_return_queue=None):
     if(check_steam_user_logged_in()):
         return 0
     try:
-        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "_2eKVn6g5Yysx9JmutQe7WV")))
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "_2GBWeup5cttgbTw8FM3tfx")))
     except TimeoutException:
         print("Could not find username input.")
-        return
-    username_input = driver.find_elements(By.CLASS_NAME, "_2eKVn6g5Yysx9JmutQe7WV")[0]
-    password_input = driver.find_elements(By.CLASS_NAME, "_2eKVn6g5Yysx9JmutQe7WV")[1]
+        return None
+    #find the first text input. This is the username input
+    username_input = driver.find_element(By.CSS_SELECTOR, 'input[type="text"]')
+    password_input = driver.find_element(By.CSS_SELECTOR, 'input[type="password"]')
     username_input.send_keys(user)
     password_input.send_keys(password)
-    submit_button = driver.find_element(By.CLASS_NAME, "_2QgFEj17t677s3x299PNJQ")
+    submit_button = driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]')
     submit_button.click()
     if check_steam_user_logged_in():
         return_value = 1
     elif len(driver.find_elements(By.CLASS_NAME, "HPSuAjHOkNfMHwURXTns7")) > 0:
         return_value = 2
-    elif len(driver.find_elements(By.CLASS_NAME, "_7LmnTPGNvHEfRVizEiGEV")) > 0:
+    elif (driver.find_element(By.XPATH, "//img[@src='https://community.akamai.steamstatic.com/public/images/applications/community/login_mobile_auth.png?v=e2f09e9d649508c82f214f84aba44363']")):
         return_value = 3
     elif len(driver.find_elements(By.CLASS_NAME, "A3Y-u39xir9DKtvLEOcnd")) > 0:
         return_value = 4

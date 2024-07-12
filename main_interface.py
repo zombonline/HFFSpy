@@ -378,13 +378,15 @@ def set_up_steam_login_page():
 
         def handle_login_state(state):
             if state == 0:
-                #User already logged in
+                #User logged in already, log in function did not execute.
                 set_up_header(main_functions.check_steam_user_logged_in())
                 load_page("Home")
             elif state == 1:
+                #Succesful log in, grab the name from user input var to save time.
                 set_up_header(username_input_var.get())
                 load_page("Home")
             elif state == 2:
+                #User must enter email code
                 clear_login_inputs()
                 # Create the verify code input
                 verify_code_label = ctk.CTkLabel(steam_login_canvas, text="Verify Code", text_color='black')
@@ -404,10 +406,10 @@ def set_up_steam_login_page():
                     else:
                         verify_result_label.configure(text="Error: Invalid code", text_color='red')
                         verify_code_input.delete(0, "end")
-
                 verify_code_button = ctk.CTkButton(steam_login_canvas, text="Verify", command=lambda: verify_code_button_click())
                 verify_code_button.pack()
             elif state == 3:
+                #User must confirm log in on steam app
                 clear_login_inputs()
                 #Create the please check steam app label
                 please_check_steam_app_label = ctk.CTkLabel(steam_login_canvas, text="Please confirm log in on the Steam app", text_color='black')

@@ -73,11 +73,17 @@ def output_to_excel(data_lists, excel_outputs):
             # Rank on far left column
             worksheet.write(row,0,row)
             col = 1
-            # Write data of the item.
-            for item in excel_outputs:
-                if excel_outputs[item][1]:
-                    worksheet.write(row,col,getattr(workshop_item, excel_outputs[item][0]))
-                    col+=1
+            # If the item was unable to be retrieved, possibily hidden
+            if workshop_item.title == None:
+                    error_msg = f'Item may be hidden from view and only accesible by admin accounts and the original creator. The API key does not have the required permissions to access this item. https://steamcommunity.com/sharedfiles/filedetails/?id={workshop_item.item_id}'
+                    worksheet.write(row, col, error_msg)
+                    worksheet.merge_range(row, col, row, col+len(excel_outputs)-1, error_msg)
+            else:
+                # Write data of the item.
+                for item in excel_outputs:
+                    if excel_outputs[item][1]:
+                        worksheet.write(row,col,getattr(workshop_item, excel_outputs[item][0]))
+                        col+=1
             row += 1
 
         if language_listed:
