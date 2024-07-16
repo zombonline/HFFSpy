@@ -401,7 +401,7 @@ def log_in_steam_user(user, password, thread_return_queue=None):
     submit_button.click()
     if check_steam_user_logged_in():
         return_value = 1
-    elif len(driver.find_elements(By.CLASS_NAME, "HPSuAjHOkNfMHwURXTns7")) > 0:
+    elif driver.find_element(By.CSS_SELECTOR,'input[type="text"][maxlength="1"]'):
         return_value = 2
     elif (driver.find_element(By.XPATH, "//img[@src='https://community.akamai.steamstatic.com/public/images/applications/community/login_mobile_auth.png?v=e2f09e9d649508c82f214f84aba44363']")):
         return_value = 3
@@ -414,10 +414,10 @@ def log_in_steam_user(user, password, thread_return_queue=None):
 
 def verify_steam_user_log_in(verify_code):
     try:
-        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "HPSuAjHOkNfMHwURXTns7")))
+        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,'input[type="text"][maxlength="1"]')))
     except TimeoutException:
         print("No verification screen found.")
-    verification_inputs = driver.find_elements(By.CLASS_NAME, "HPSuAjHOkNfMHwURXTns7")
+    verification_inputs = driver.find_elements(By.CSS_SELECTOR,'input[type="text"][maxlength="1"]')
     for i in range(len(verify_code)):
         verification_inputs[i].send_keys(verify_code[i])
     if check_steam_user_logged_in():
