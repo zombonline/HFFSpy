@@ -1,6 +1,6 @@
 import time
 from langdetect import detect
-from steam import Steam
+from steam_web_api import Steam
 import requests
 import sys
 from selenium import webdriver
@@ -384,14 +384,17 @@ def log_in_steam_user(user, password, thread_return_queue=None):
     #If the log in is succesful, the function will return 0
     #If there is a verification code screen shown, the program will return 1
     #If there is a "use steam mobile app to log in" screen shown, the program will return 2
-    driver.get('https://steamcommunity.com/login/home')
+    print(bool(check_steam_user_logged_in()))
     if(check_steam_user_logged_in()):
-        return 0
+        return_value = 'ALREADY_LOGGED_IN'
+        thread_return_queue.put(return_value)
+        return
+    driver.get('https://steamcommunity.com/login/home')
     try:
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "_2GBWeup5cttgbTw8FM3tfx")))
     except TimeoutException:
         print("Could not find username input.")
-        return None
+        return_value = None
     #find the first text input. This is the username input
     username_input = driver.find_element(By.CSS_SELECTOR, 'input[type="text"]')
     password_input = driver.find_element(By.CSS_SELECTOR, 'input[type="password"]')
@@ -400,13 +403,15 @@ def log_in_steam_user(user, password, thread_return_queue=None):
     submit_button = driver.find_element(By.CSS_SELECTOR, 'button[type="submit"]')
     submit_button.click()
     if check_steam_user_logged_in():
-        return_value = 1
-    elif driver.find_element(By.CSS_SELECTOR,'input[type="text"][maxlength="1"]'):
-        return_value = 2
-    elif (driver.find_element(By.XPATH, "//img[@src='https://community.akamai.steamstatic.com/public/images/applications/community/login_mobile_auth.png?v=e2f09e9d649508c82f214f84aba44363']")):
-        return_value = 3
+        return_value = 'LOGGED_IN'
+    elif len(driver.find_elements(By.CSS_SELECTOR,'input[type="text"][maxlength="1"]')) > 0:
+        return_value = 'EMAIL_AUTH'
+    elif len(driver.find_elements(By.XPATH, "//img[@src='https://community.akamai.steamstatic.com/public/images/applications/community/login_mobile_auth.png?v=e2f09e9d649508c82f214f84aba44363']")) > 0:
+        return_value = 'MOBILE_AUTH'
+    elif len(driver.find_elements(By.XPATH, "//*[contains(text(), 'Please check your password and account name and try again.')]")) > 0:
+        return_value = 'INVALID_CREDENTIALS'
     elif len(driver.find_elements(By.CLASS_NAME, "A3Y-u39xir9DKtvLEOcnd")) > 0:
-        return_value = 4
+        return_value = 'TOO_MANY_ATTEMPTS'
     if thread_return_queue is not None:
         thread_return_queue.put(return_value)
     else:
@@ -429,7 +434,7 @@ def verify_steam_user_log_in(verify_code):
 
 def check_steam_user_logged_in():
     try:
-        WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "account_name")))
+        WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, "account_name")))
         account_name = driver.find_element(By.ID, "account_dropdown").get_attribute('innerHTML')
         account_name = account_name.split('<span class="account_name">')[1].split('</span>')[0]
         return account_name

@@ -377,57 +377,57 @@ def set_up_steam_login_page():
         app.after(100, login_progress)
 
         def handle_login_state(state):
-            if state == 0:
-                #User logged in already, log in function did not execute.
-                set_up_header(main_functions.check_steam_user_logged_in())
-                load_page("Home")
-            elif state == 1:
-                #Succesful log in, grab the name from user input var to save time.
-                set_up_header(username_input_var.get())
-                load_page("Home")
-            elif state == 2:
-                #User must enter email code
-                clear_login_inputs()
-                # Create the verify code input
-                verify_code_label = ctk.CTkLabel(steam_login_canvas, text="Verify Code", text_color='black')
-                verify_code_label.pack()
-                verify_code_input_var = tk.StringVar()
-                verify_code_input = ctk.CTkEntry(steam_login_canvas, textvariable=verify_code_input_var, text_color='white')
-                verify_code_input.pack()
-                # Create the verify result label
-                verify_result_label = ctk.CTkLabel(steam_login_canvas, text="", text_color='red')
-                verify_result_label.pack()
-                # Create the verify code button
-                def verify_code_button_click():
-                    result = main_functions.verify_steam_user_log_in(verify_code_input.get())
-                    if result == True:
-                        verify_result_label.configure(text="Success", text_color='green')
-                        set_up_header(main_functions.check_steam_user_logged_in())
-                    else:
-                        verify_result_label.configure(text="Error: Invalid code", text_color='red')
-                        verify_code_input.delete(0, "end")
-                verify_code_button = ctk.CTkButton(steam_login_canvas, text="Verify", command=lambda: verify_code_button_click())
-                verify_code_button.pack()
-            elif state == 3:
-                #User must confirm log in on steam app
-                clear_login_inputs()
-                #Create the please check steam app label
-                please_check_steam_app_label = ctk.CTkLabel(steam_login_canvas, text="Please confirm log in on the Steam app", text_color='black')
-                please_check_steam_app_label.pack()
-                #Create the "Confirmed" button
-                def im_done_button_click():
+            match state:
+                case 'ALREADY_LOGGED_IN':
                     set_up_header(main_functions.check_steam_user_logged_in())
                     load_page("Home")
-                im_done_button = ctk.CTkButton(steam_login_canvas, text="Confirmed", command=lambda: im_done_button_click())
-                im_done_button.pack()
-            elif state == 4:
-                #Too many retries
-                clear_login_inputs()
-                #Create the too many retries label
-                too_many_retries_label = ctk.CTkLabel(steam_login_canvas, text="Too many retries, please try again later", text_color='red')
-                too_many_retries_label.pack()
-            else:
-                print("Error: Unknown state")   
+                case 'LOGGED_IN':
+                    set_up_header(username_input_var.get())
+                    load_page("Home")
+                case 'EMAIL_AUTH':
+                    #User must enter email code
+                    clear_login_inputs()
+                    # Create the verify code input
+                    verify_code_label = ctk.CTkLabel(steam_login_canvas, text="Verify Code", text_color='black')
+                    verify_code_label.pack()
+                    verify_code_input_var = tk.StringVar()
+                    verify_code_input = ctk.CTkEntry(steam_login_canvas, textvariable=verify_code_input_var, text_color='white')
+                    verify_code_input.pack()
+                    # Create the verify result label
+                    verify_result_label = ctk.CTkLabel(steam_login_canvas, text="", text_color='red')
+                    verify_result_label.pack()
+                    # Create the verify code button
+                    def verify_code_button_click():
+                        result = main_functions.verify_steam_user_log_in(verify_code_input.get())
+                        if result == True:
+                            verify_result_label.configure(text="Success", text_color='green')
+                            set_up_header(main_functions.check_steam_user_logged_in())
+                        else:
+                            verify_result_label.configure(text="Error: Invalid code", text_color='red')
+                            verify_code_input.delete(0, "end")
+                    verify_code_button = ctk.CTkButton(steam_login_canvas, text="Verify", command=lambda: verify_code_button_click())
+                    verify_code_button.pack()
+                case 'MOBILE_AUTH':
+                    #User must confirm log in on steam app
+                    clear_login_inputs()
+                    #Create the please check steam app label
+                    please_check_steam_app_label = ctk.CTkLabel(steam_login_canvas, text="Please confirm log in on the Steam app", text_color='black')
+                    please_check_steam_app_label.pack()
+                    #Create the "Confirmed" button
+                    def im_done_button_click():
+                        set_up_header(main_functions.check_steam_user_logged_in())
+                        load_page("Home")
+                    im_done_button = ctk.CTkButton(steam_login_canvas, text="Confirmed", command=lambda: im_done_button_click())
+                    im_done_button.pack()
+                case 'TOO_MANY_ATTEMPTS':
+                    #Too many retries
+                    clear_login_inputs()
+                    #Create the too many retries label
+                    too_many_retries_label = ctk.CTkLabel(steam_login_canvas, text="Too many retries, please try again later", text_color='red')
+                    too_many_retries_label.pack()
+                case 'INVALID_CREDENTIALS':
+                    invalid_credentials_label = ctk.CTkLabel(steam_login_canvas, text="Username or password may be incorrect, please re-enter.", text_color='red')
+                    invalid_credentials_label.pack()
     
 def set_up_chrome_driver_page():
     chrome_driver_info = "There may have been an error with locating your Chrome Driver. Please ensure you have a chrome driver installed in the program folder and the version matches your current installation of Google Chrome. Once done, please restart the program."
