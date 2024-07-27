@@ -430,7 +430,7 @@ def set_up_steam_login_page():
                     invalid_credentials_label.pack()
     
 def set_up_chrome_driver_page():
-    chrome_driver_info = "There may have been an error with locating your Chrome Driver. Please ensure you have a chrome driver installed in the program folder and the version matches your current installation of Google Chrome. Once done, please restart the program."
+    chrome_driver_info = "There may have been an error when locating 'ChromeDriver'. Please ensure you have it installed in the program folder and that it matches the version of Google Chrome installed on your system. You can download the latest version of ChromeDriver here. Please restart the program."
     chrome_driver_canvas = set_up_page_canvas("Chrome Driver", chrome_driver_info, False)
     # Create the download button
     download_button = ctk.CTkButton(chrome_driver_canvas, text="Download", command=lambda: os.system("start https://googlechromelabs.github.io/chrome-for-testing/"))

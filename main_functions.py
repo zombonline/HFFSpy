@@ -8,7 +8,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException
+import selenium.common.exceptions
 from selenium.webdriver.support import expected_conditions as EC
 from datetime import datetime
 import os
@@ -43,7 +43,7 @@ def workshop_next_page():
 def get_total_items():
     try:
         wait.until(lambda driver: len(driver.find_elements(By.CSS_SELECTOR, 'div.workshopBrowsePagingInfo')) > 0)
-    except TimeoutException:
+    except selenium.common.exceptions.TimeoutException:
         print("Could not find expected number of items.")
         return 0
     total_items_string = driver.find_element(By.CSS_SELECTOR, 'div.workshopBrowsePagingInfo').text
@@ -152,7 +152,7 @@ def get_creator_contribution_count(creator_id):
     driver.get(f"https://steamcommunity.com/profiles/{creator_id}/myworkshopfiles/?appid=477160")
     try:
         wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, 'workshopBrowsePagingInfo')) > 0)
-    except TimeoutException:
+    except selenium.common.exceptions.TimeoutException:
         print("Could not find expected number of items.")
         return "N/A"
     contribution_count = driver.find_element(By.CLASS_NAME, 'workshopBrowsePagingInfo').text
@@ -169,7 +169,7 @@ def get_creator_followers_count(creator_id):
         driver.get(f"https://steamcommunity.com/profiles/{creator_id}/myworkshopfiles/?appid=477160")
     try:
         wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, 'followStat')) > 0)
-    except TimeoutException:
+    except selenium.common.exceptions.TimeoutException:
         print("Could not find expected number of followers.")
         return "N/A"
     followers_count_string = driver.find_element(By.CLASS_NAME, 'followStat').text
@@ -252,7 +252,7 @@ def get_item_rating(workshop_item):
     try:
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "workshopAdminStatsBarPercent")))
         rating = driver.find_element(By.CLASS_NAME, "workshopAdminStatsBarPercent").text.split('%')[0]+"%"
-    except TimeoutException:
+    except selenium.common.exceptions.TimeoutException:
         rating = "N/A"
     return rating
 
@@ -270,7 +270,7 @@ def get_item_comment_count(workshop_item):
         elif '条留言' in comment_count:
             #0 条留言
             comment_count = comment_count.split('条留言')[0]
-    except TimeoutException:
+    except selenium.common.exceptions.TimeoutException:
         comment_count = "N/A"
     return comment_count
 
@@ -285,7 +285,7 @@ def get_item_visitors(workshop_item):
         tbody = stats_table.find_element(By.TAG_NAME, "tbody")
         first_row = tbody.find_element(By.TAG_NAME, "tr")
         visitors = first_row.text.split(' ')[0].replace(',', '')
-    except TimeoutException:
+    except selenium.common.exceptions.TimeoutException:
         visitors = "N/A"
     return visitors
 
@@ -347,7 +347,7 @@ def get_game_workshop_count(gameAppID):
     gameWorkShopItemCount = "N/A"
     try:
         gameWorkShopItemCount = get_total_items()
-    except TimeoutException:
+    except selenium.common.exceptions.TimeoutException:
         print("Timed out waiting for page to load")
         return
     return gameWorkShopItemCount
@@ -384,15 +384,16 @@ def log_in_steam_user(user, password, thread_return_queue=None):
     #If the log in is succesful, the function will return 0
     #If there is a verification code screen shown, the program will return 1
     #If there is a "use steam mobile app to log in" screen shown, the program will return 2
-    print(bool(check_steam_user_logged_in()))
-    if(check_steam_user_logged_in()):
-        return_value = 'ALREADY_LOGGED_IN'
-        thread_return_queue.put(return_value)
-        return
     driver.get('https://steamcommunity.com/login/home')
+    if driver.current_url != 'https://steamcommunity.com/login/home':
+        if check_steam_user_logged_in():
+            return_value = 'ALREADY_LOGGED_IN'
+            if thread_return_queue is not None:
+                thread_return_queue.put(return_value)
+            return
     try:
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, "_2GBWeup5cttgbTw8FM3tfx")))
-    except TimeoutException:
+    except selenium.common.exceptions.TimeoutException:
         print("Could not find username input.")
         return_value = None
     #find the first text input. This is the username input
@@ -420,7 +421,7 @@ def log_in_steam_user(user, password, thread_return_queue=None):
 def verify_steam_user_log_in(verify_code):
     try:
         wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,'input[type="text"][maxlength="1"]')))
-    except TimeoutException:
+    except selenium.common.exceptions.TimeoutException:
         print("No verification screen found.")
     verification_inputs = driver.find_elements(By.CSS_SELECTOR,'input[type="text"][maxlength="1"]')
     for i in range(len(verify_code)):
@@ -434,11 +435,11 @@ def verify_steam_user_log_in(verify_code):
 
 def check_steam_user_logged_in():
     try:
-        WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CLASS_NAME, "account_name")))
+        WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "account_name")))
         account_name = driver.find_element(By.ID, "account_dropdown").get_attribute('innerHTML')
         account_name = account_name.split('<span class="account_name">')[1].split('</span>')[0]
         return account_name
-    except TimeoutException:
+    except selenium.common.exceptions.TimeoutException:
         return False
 
 def check_for_settings_file():
@@ -489,10 +490,12 @@ def start_driver():
     else:
         print("ChromeDriver found.")
     webdriver_service = Service(chrome_driver_path)
-    driver = webdriver.Chrome(service=webdriver_service, options=options)
+    try:
+        driver = webdriver.Chrome(service=webdriver_service, options=options)
+    except selenium.common.exceptions.SessionNotCreatedException:
+        return False
     wait = WebDriverWait(driver, 10)
     return driver
-
 def set_steam_api_key():
     global KEY, steam, url
     KEY = get_setting_value("steam_api_key", "str")
