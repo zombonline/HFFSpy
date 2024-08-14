@@ -1,6 +1,6 @@
 import time
 from langdetect import detect
-from steam_web_api import Steam
+from steam import Steam
 import requests
 import sys
 from selenium import webdriver
