@@ -2,11 +2,20 @@ from datetime import datetime
 import xlsxwriter
 import main_functions
 import os
+from pathlib import Path
 
 
 def output_to_excel(data_lists, excel_outputs):
     dt = datetime.now()
-    workbook = xlsxwriter.Workbook(f'HFFSpy Scan {dt.year}-{dt.month}-{dt.day}-{dt.hour}-{dt.minute}-{dt.second}.xlsx')
+    documents_path = Path(os.path.expanduser('~')) / 'Documents'
+    sheets_path = documents_path / 'HFFSpy Sheets'
+    if not sheets_path.exists():
+        sheets_path.mkdir()
+
+    filename = f'HFFSpy Scan {dt.year}-{dt.month}-{dt.day}-{dt.hour}-{dt.minute}-{dt.second}.xlsx'
+    full_path = sheets_path / filename
+
+    workbook = xlsxwriter.Workbook(full_path)
     format_dict = {
         "Signed": workbook.add_format({'bold': True, 'bg_color': 'green'}),
         "Contacted": workbook.add_format({'bold': True, 'bg_color': 'yellow'}),
@@ -153,7 +162,7 @@ def output_to_excel(data_lists, excel_outputs):
             
 
     workbook.close()
-    os.startfile(f'HFFSpy Scan {dt.year}-{dt.month}-{dt.day}-{dt.hour}-{dt.minute}-{dt.second}.xlsx')        
+    os.startfile(full_path)        
 
 def scan(start_date_timestamp, end_date_timestamp, amount_of_items, sort_by, seperate_levels_and_models, excel_outputs, progress_queue):
     
