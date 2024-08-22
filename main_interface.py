@@ -250,6 +250,7 @@ def set_up_creator_page():
     creator_canvas = set_up_page_canvas("Creator", creator_info, True)
     tab_buttons_frame = ctk.CTkFrame(creator_canvas, fg_color='transparent')
     tab_buttons_frame.pack(pady=5)
+    appdata_dir = main_functions.get_appdata_dir()
     def populate_creator_status_listbox(status):
         global current_status 
         current_status = status
@@ -263,7 +264,7 @@ def set_up_creator_page():
         elif status == "planned":
             planning_to_contact_button.configure(border_width=4)
         creator_status_listbox.delete(0, "end")
-        with open(f"creator_status_{status}.txt", "r") as file:
+        with open(os.path.join(appdata_dir, f"creator_status_{status}.txt"), "r") as file:
             lines = file.readlines()
             for line in lines:
                 if line == "\n":
@@ -299,13 +300,13 @@ def set_up_creator_page():
             print("Error: User not found")
         else:
             message_label.configure(text="User succesfully added to " + current_status + " list", text_color='green')
-            with open(f"creator_status_{current_status}.txt", "r") as oldfile, open(f"creator_status_{current_status}_temp.txt", "w") as newfile:
+            appdata_dir = main_functions.get_appdata_dir()
+            with open(os.path.join(appdata_dir, f"creator_status_{current_status}.txt"), "r") as oldfile, open(os.path.join(appdata_dir, f"creator_status_{current_status}_temp.txt"), "w") as newfile:
                 for line in oldfile:
                     newfile.write(line)
-                
                 newfile.write(main_functions.get_creator_name(user) + " (" + creator_id + ")\n")
-            os.remove(f"creator_status_{current_status}.txt")
-            os.rename(f"creator_status_{current_status}_temp.txt", f"creator_status_{current_status}.txt")
+            os.remove(os.path.join(appdata_dir, f"creator_status_{current_status}.txt"))
+            os.rename(os.path.join(appdata_dir, f"creator_status_{current_status}_temp.txt"), os.path.join(appdata_dir, f"creator_status_{current_status}.txt"))
             populate_creator_status_listbox(current_status)
             creator_input.delete(0, "end")
         main_functions.populate_user_lists()
@@ -318,13 +319,13 @@ def set_up_creator_page():
         # Get position of selected item
         selected_item_index = creator_status_listbox.curselection()[0]
         message_label.configure(text="User succesfully removed from " + current_status + " list", text_color='green')
-        with open(f"creator_status_{current_status}.txt", "r") as oldfile, open(f"creator_status_{current_status}_temp.txt", "w") as newfile:
+        with open(os.path.join(appdata_dir, f"creator_status_{current_status}.txt"), "r") as oldfile, open(os.path.join(appdata_dir, f"creator_status_{current_status}_temp.txt"), "w") as newfile:
             for index, line in enumerate(oldfile):
                 if index == selected_item_index or line == "\n":
                     continue
                 newfile.write(line)
-        os.remove(f"creator_status_{current_status}.txt")
-        os.rename(f"creator_status_{current_status}_temp.txt", f"creator_status_{current_status}.txt")
+        os.remove(os.path.join(appdata_dir, f"creator_status_{current_status}.txt"))
+        os.rename(os.path.join(appdata_dir, f"creator_status_{current_status}_temp.txt"), os.path.join(appdata_dir, f"creator_status_{current_status}.txt"))
         populate_creator_status_listbox(current_status)
         main_functions.populate_user_lists()
     remove_creator_button = ctk.CTkButton(creator_canvas, text="Remove Creator", command=lambda: remove_creator_button_click())
