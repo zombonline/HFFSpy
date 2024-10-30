@@ -2,8 +2,18 @@ from datetime import date
 import xlsxwriter
 import main_functions
 import os
+import datetime
+from pathlib import Path
 def output_to_excel(games):
-    workbook = xlsxwriter.Workbook('UGCOfMajorGames.xlsx')
+    dt = datetime.now()
+    documents_path = Path(os.path.expanduser('~')) / 'Documents'
+    sheets_path = documents_path / 'HFFSpy Sheets'
+    if not sheets_path.exists():
+        sheets_path.mkdir()
+
+    filename = f'Steam Top 100 Scan {dt.year}-{dt.month}-{dt.day}-{dt.hour}-{dt.minute}-{dt.second}.xlsx'
+    full_path = sheets_path / filename
+    workbook = xlsxwriter.Workbook(full_path)
     worksheet = workbook.add_worksheet()
     worksheet.write('A1', 'Rank')
     worksheet.write('B1', 'Game Name')
@@ -15,7 +25,7 @@ def output_to_excel(games):
         worksheet.write(i+1, 2, games[i].amountOfItems)
     
     workbook.close()
-    os.startfile('UGCOfMajorGames.xlsx')
+    os.startfile(full_path)
 
 def scan(progress_queue):
     progress_queue.put("Getting current top 100 games from SteamDB...")
